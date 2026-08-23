@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Local database (SQLite)
+local_dev.db
+*.db
+*.sqlite3
+
+# Uploaded files (may contain user PII / resumes)
+uploads/
+!uploads/.gitkeep
+
+# Env files (secrets)
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,36 @@
+# 环境变量（含 API Key，绝不提交）
+.env
+.env.local
+.env.production
+.env.*.local
+backend/.env
+backend/.env.local
+
+# 依赖
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Next.js 构建产物
+.next/
+out/
+.turbo/
+
+# 上传文件（用户简历原文件）
+uploads/
+backend/uploads/
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# 日志
+*.log
+npm-debug.log*
+
+# 系统
+.DS_Store
+Thumbs.db
