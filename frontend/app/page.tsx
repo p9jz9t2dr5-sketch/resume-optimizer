@@ -351,43 +351,76 @@ export default function HomePage() {
 
           {/* Results */}
           {(jdResult || matchReport) && (
-            <div className="mt-12 animate-fade-in">
+            <div className="mt-8 animate-fade-in">
               {/* AI Match Report */}
               {matchReport ? (
-                <div className="flex flex-col lg:flex-row gap-8 items-start">
+                <div className="flex flex-col lg:flex-row gap-6 items-start">
                   <div className="flex-shrink-0">
                     <ScoreRing score={matchReport.overall_score} size={160} />
                   </div>
-                  <div className="flex-1 w-full">
+                  <div className="flex-1 w-full min-w-0 space-y-6">
                     <MatchReport report={matchReport} />
-                    <div className="flex items-center gap-3 mt-6 flex-wrap">
-                      <button onClick={handleStartChat} className="btn-gradient flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        进入 AI 对话优化
-                      </button>
-                      <button
-                        onClick={handlePolish}
-                        disabled={isPolishing}
-                        className="btn-ghost flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/60 text-purple-300"
-                      >
-                        {isPolishing ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-                            生成建议中...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-4 h-4" />
-                            简历优化建议
-                          </>
-                        )}
-                      </button>
-                    </div>
+
+                    {/* Action buttons (or polished result) sit in the same right column */}
+                    {!polishedContent ? (
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <button onClick={handleStartChat} className="btn-gradient flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          进入 AI 对话优化
+                        </button>
+                        <button
+                          onClick={handlePolish}
+                          disabled={isPolishing}
+                          className="btn-ghost flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/60 text-purple-300"
+                        >
+                          {isPolishing ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                              生成建议中...
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-4 h-4" />
+                              简历优化建议
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="glass-card p-6">
+                        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <Wand2 className="w-5 h-5 text-accent-purple" />
+                            <h3 className="text-lg font-semibold">简历优化建议</h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleStartChat}
+                              className="btn-gradient flex items-center gap-1.5 text-sm py-1.5 px-3"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                              进入 AI 对话优化
+                            </button>
+                            <button
+                              onClick={handleCopyPolished}
+                              className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent-cyan transition-colors px-3 py-1.5 rounded-lg glass"
+                            >
+                              {polishCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                              {polishCopied ? "已复制" : "复制全文"}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="markdown-body bg-slate-800/50 rounded-xl p-5 border border-slate-700/30 max-h-[600px] overflow-y-auto">
+                          <MarkdownText text={polishedContent} />
+                          {isPolishing && <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse ml-0.5 align-text-bottom" />}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
                 /* Fallback: JD parsed without AI match */
-                <div className="glass-card p-6 max-w-2xl mx-auto">
+                <div className="glass-card p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <FileSearch className="w-6 h-6 text-accent-cyan" />
                     <h3 className="text-lg font-semibold">JD 解析完成</h3>
@@ -420,58 +453,65 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-3 mt-6 flex-wrap">
-                    <button onClick={handleStartChat} className="btn-gradient flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4" />
-                      进入 AI 对话优化
-                    </button>
-                    <button
-                      onClick={handlePolish}
-                      disabled={isPolishing}
-                      className="btn-ghost flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/60 text-purple-300"
-                    >
-                      {isPolishing ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-                          生成建议中...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="w-4 h-4" />
-                          简历优化建议
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  {/* Action buttons for the fallback (no match) case */}
+                  {!polishedContent && (
+                    <div className="flex items-center gap-3 mt-6 flex-wrap">
+                      <button onClick={handleStartChat} className="btn-gradient flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        进入 AI 对话优化
+                      </button>
+                      <button
+                        onClick={handlePolish}
+                        disabled={isPolishing}
+                        className="btn-ghost flex items-center gap-2 border border-purple-500/30 hover:border-purple-500/60 text-purple-300"
+                      >
+                        {isPolishing ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                            生成建议中...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4" />
+                            简历优化建议
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {polishedContent && (
+                    <div className="mt-6 glass-card p-6">
+                      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <Wand2 className="w-5 h-5 text-accent-purple" />
+                          <h3 className="text-lg font-semibold">简历优化建议</h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleStartChat}
+                            className="btn-gradient flex items-center gap-1.5 text-sm py-1.5 px-3"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            进入 AI 对话优化
+                          </button>
+                          <button
+                            onClick={handleCopyPolished}
+                            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent-cyan transition-colors px-3 py-1.5 rounded-lg glass"
+                          >
+                            {polishCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                            {polishCopied ? "已复制" : "复制全文"}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="markdown-body bg-slate-800/50 rounded-xl p-5 border border-slate-700/30 max-h-[600px] overflow-y-auto">
+                        <MarkdownText text={polishedContent} />
+                        {isPolishing && <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse ml-0.5 align-text-bottom" />}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Polished Resume Result */}
-          {polishedContent && (
-            <div className="mt-8 max-w-4xl mx-auto animate-fade-in">
-              <div className="glass-card p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Wand2 className="w-5 h-5 text-accent-purple" />
-                    <h3 className="text-lg font-semibold">简历优化建议</h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleCopyPolished}
-                      className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent-cyan transition-colors px-3 py-1.5 rounded-lg glass"
-                    >
-                      {polishCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                      {polishCopied ? "已复制" : "复制全文"}
-                    </button>
-                  </div>
-                </div>
-                <div className="markdown-body bg-slate-800/50 rounded-xl p-5 border border-slate-700/30 max-h-[600px] overflow-y-auto">
-                  <MarkdownText text={polishedContent} />
-                  {isPolishing && <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse ml-0.5 align-text-bottom" />}
-                </div>
-              </div>
             </div>
           )}
         </div>

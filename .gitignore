@@ -24,6 +24,7 @@ backend/uploads/
 
 # 数据库
 *.db
+*.db.bak*
 *.sqlite
 *.sqlite3
 
@@ -34,3 +35,6 @@ npm-debug.log*
 # 系统
 .DS_Store
 Thumbs.db
+
+# 测试产物
+backend/test_user.png
