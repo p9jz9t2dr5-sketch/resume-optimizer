@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/stores/toastStore";
-import { Sparkles, Mail, Lock, CheckCircle } from "lucide-react";
+import { Sparkles, Mail, Lock, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,17 +14,19 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (password !== confirmPassword) {
-      toast.error("两次输入的密码不一致");
+      setError("两次输入的密码不一致");
       return;
     }
     if (password.length < 6) {
-      toast.error("密码长度至少 6 位");
+      setError("密码长度至少 6 位");
       return;
     }
 
@@ -34,7 +36,7 @@ export default function RegisterPage() {
       toast.success("注册成功，欢迎加入！");
       router.push("/dashboard");
     } catch (e: any) {
-      toast.error(e.message || "注册失败，请重试");
+      setError(e.message || "注册失败，请重试");
     } finally {
       setIsLoading(false);
     }
@@ -51,6 +53,13 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-bold">创建账户</h1>
           <p className="text-text-secondary text-sm mt-1">开始你的 AI 简历优化之旅</p>
         </div>
+
+        {error && (
+          <div className="flex items-center gap-2 mb-5 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -253,12 +253,12 @@ export default function HomePage() {
             并通过多轮对话帮你用 STAR 原则逐段优化，让你的简历脱颖而出
           </p>
 
-          <div className="flex items-center justify-center gap-4 mb-16">
-            <a href="#upload-section" className="btn-gradient flex items-center gap-2 text-lg px-8 py-3">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-16">
+            <a href="#upload-section" className="btn-gradient flex items-center justify-center gap-2 text-lg px-8 py-3 w-full sm:w-auto">
               <Sparkles className="w-5 h-5" />
               开始优化简历
             </a>
-            <a href="#how-it-works" className="btn-ghost flex items-center gap-2 text-lg px-6 py-3">
+            <a href="#how-it-works" className="btn-ghost flex items-center justify-center gap-2 text-lg px-6 py-3 w-full sm:w-auto">
               了解更多
               <ArrowRight className="w-5 h-5" />
             </a>
@@ -291,7 +291,7 @@ export default function HomePage() {
       {/* Upload + JD Section */}
       <section id="upload-section" className="py-8 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">

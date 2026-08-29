@@ -145,7 +145,7 @@ export default function ResumesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{resume.original_filename}</p>
-                  <div className="flex items-center gap-3 text-xs text-text-muted mt-0.5">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-text-muted mt-0.5">
                     <span>{resume.version_name}</span>
                     <span>·</span>
                     {parsingIds.has(resume.id) ? (
@@ -162,7 +162,7 @@ export default function ResumesPage() {
                     <span>{formatDate(resume.created_at)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
                   {!resume.parsed_data?.structured && (
                     <button
                       onClick={(e) => {

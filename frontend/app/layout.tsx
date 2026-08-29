@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import Navbar from "@/components/layout/Navbar";
@@ -7,6 +7,12 @@ import ToastContainer from "@/components/ui/ToastContainer";
 export const metadata: Metadata = {
   title: "AI Resume Optimizer — AI 简历优化平台",
   description: "AI-powered resume optimization — match your resume to top tech company job descriptions",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

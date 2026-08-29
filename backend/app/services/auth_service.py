@@ -49,7 +49,7 @@ def refresh_access_token(refresh_token: str) -> str:
 async def register_user(db: AsyncSession, email: str, password: str) -> User:
     existing = await db.execute(select(User).where(User.email == email))
     if existing.scalar_one_or_none():
-        raise ValueError("Email already registered")
+        raise ValueError("该邮箱已被注册，请直接登录")
 
     user = User(
         email=email,
