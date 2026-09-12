@@ -7,14 +7,21 @@
 services:
   db:
     restart: unless-stopped
+    # 2 GiB 的机器上给每个容器封顶：容器内的 cgroup OOM 只杀容器本身（随后按
+    # restart 策略自动回来），不会像宿主机级 OOM 那样把 dockerd 一起带走。
+    mem_limit: 320m
   redis:
     restart: unless-stopped
+    mem_limit: 96m
   backend:
     restart: unless-stopped
     # Production runs without --reload: the file watcher is useless on a host
     # and only costs memory.
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    mem_limit: 384m
   frontend:
     restart: unless-stopped
+    mem_limit: 384m
   nginx:
     restart: unless-stopped
+    mem_limit: 64m

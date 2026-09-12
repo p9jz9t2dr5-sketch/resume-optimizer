@@ -229,6 +229,12 @@ docker compose ps                       # 5 个容器：db / redis / backend / f
 - 更新版本：把新代码同步到服务器后执行 `docker compose up -d --build`，重建镜像会保留数据库卷；
 - 前端容器重建后 nginx 会缓存旧的上游 IP，需要 `docker compose restart nginx`。
 
+### 小内存机器的运维注意
+
+演示机是 2 GiB 内存。**不要在它上面跑 `docker system df`**：这个命令统计镜像/缓存占用时会让 dockerd 自身吃下 1 GB 以上内存，实测触发过内核级 OOM，把 dockerd 连同五个容器一起杀掉（容器在 dockerd 恢复后按 restart 策略自动回来）。需要看磁盘用 `df -h` 和 `docker images`，需要回收空间用 `docker builder prune -f`（本次清出约 8 GB，代价是下一次构建会全量重建）。
+
+`docker-compose.override.yml` 里给每个服务设了 `mem_limit`，让容器内存溢出只在 cgroup 内被 OOM 掉并自动重启，而不会拖垮宿主机的 Docker 守护进程。
+
 ## 已知限制与后续计划
 
 - **水平扩展**：会话状态在 Redis、文件在本地磁盘，多实例部署前需要把上传切到对象存储。
