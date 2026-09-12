@@ -7,8 +7,9 @@ RUN npm config set registry "$NPM_REGISTRY"
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+# `npm ci` installs exactly what package-lock.json pins — the same command CI runs.
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY . .
 
@@ -20,16 +21,21 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # ---- Runtime stage ----
+# `output: "standalone"` traces the modules the server actually requires, so the
+# runtime image ships that trace instead of the whole node_modules and no
+# dev/build tooling ends up in production.
 FROM node:22-alpine AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
+# The standalone server binds to $HOSTNAME when it is set, and Docker sets that to
+# the container id — pin it so it listens on every interface.
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/next.config.ts ./next.config.ts
 
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]

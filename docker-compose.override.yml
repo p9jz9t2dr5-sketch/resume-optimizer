@@ -1,0 +1,20 @@
+# Deployment overrides applied automatically by `docker compose` on top of
+# docker-compose.yml. The base file intentionally stays close to a dev setup, so
+# anything that only matters for a long-running host lives here.
+#
+# The important bit: without a restart policy the stack stays down after the
+# host reboots, which is exactly what happened to the first deployment.
+services:
+  db:
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped
+  backend:
+    restart: unless-stopped
+    # Production runs without --reload: the file watcher is useless on a host
+    # and only costs memory.
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  frontend:
+    restart: unless-stopped
+  nginx:
+    restart: unless-stopped
