@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,13 +11,23 @@ from app.schemas.auth import (
     UserResponse,
     UserStatsResponse,
 )
-from app.services.auth_service import register_user, authenticate_user, create_access_token, create_refresh_token, refresh_access_token
+from app.services.auth_service import (
+    register_user,
+    authenticate_user,
+    create_access_token,
+    create_refresh_token,
+    refresh_access_token,
+    delete_user_account,
+)
 from app.services.avatar_service import delete_stored_file, store_user_avatar
+from app.services.login_throttle import WINDOW_SECONDS, login_throttle
 from app.middleware.auth_middleware import get_current_user
 from app.models.user import User
 from app.services.quota_service import quota_service
+from app.config import get_settings
 
 router = APIRouter()
+settings = get_settings()
 
 # Profile picture upload limits.
 MAX_AVATAR_BYTES = 5 * 1024 * 1024
@@ -26,6 +36,18 @@ ALLOWED_AVATAR_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+def _client_key(http_request: Request) -> str:
+    """Best-effort client identity for throttling.
+
+    Behind nginx the socket address is the proxy, so prefer the first hop of
+    X-Forwarded-For (nginx sets it in nginx/nginx.conf).
+    """
+    forwarded = http_request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return http_request.client.host if http_request.client else "unknown"
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -38,13 +60,28 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(
+    request: LoginRequest,
+    http_request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    identifier = f"{_client_key(http_request)}:{request.email.lower()}"
+
+    if await login_throttle.is_blocked(identifier):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"该账号登录失败次数过多，请 {WINDOW_SECONDS // 60} 分钟后再试",
+        )
+
     user = await authenticate_user(db, request.email, request.password)
     if not user:
+        await login_throttle.register_failure(identifier)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="邮箱或密码错误",
         )
+
+    await login_throttle.clear(identifier)
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
@@ -54,6 +91,33 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.delete("/me")
+async def delete_me(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete the account together with all of its data.
+
+    Removes the user's resumes, job descriptions, interview sessions and
+    messages, plus every file they uploaded (original resume files, extracted
+    avatars and the profile picture). The upload files are only unlinked after
+    the transaction commits, so a failed commit cannot leave the database
+    pointing at deleted files.
+    """
+    user_id = str(current_user.id)
+    stored_files = await delete_user_account(db, current_user)
+    await db.commit()
+
+    removed = sum(1 for url in stored_files if delete_stored_file(url))
+    await quota_service.clear_daily(user_id)
+
+    return {
+        "deleted": True,
+        "files_removed": removed,
+        "files_tracked": len(stored_files),
+    }
 
 
 @router.patch("/me", response_model=UserResponse)
@@ -150,7 +214,9 @@ async def get_user_stats(
         select(func.count()).where(ChatSession.user_id == current_user.id)
     )
     messages_today = await quota_service.get_daily_count(str(current_user.id))
-    daily_limit = 999999 if current_user.is_premium else 20
+    daily_limit = (
+        999999 if current_user.is_premium else settings.FREE_DAILY_MESSAGE_LIMIT
+    )
 
     return UserStatsResponse(
         resume_count=resume_count or 0,

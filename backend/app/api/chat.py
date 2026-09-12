@@ -7,7 +7,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.config import get_settings
 from app.middleware.auth_middleware import get_current_user
+from app.services.quota_service import quota_service
 from app.models.user import User
 from app.models.resume import Resume
 from app.models.chat import Message
@@ -32,6 +34,7 @@ from app.services.llm_service import llm_service
 logger = logging.getLogger("uvicorn")
 
 router = APIRouter()
+settings = get_settings()
 
 
 @router.post("/start", response_model=ChatStartResponse, status_code=status.HTTP_201_CREATED)
@@ -138,7 +141,21 @@ async def send_message(
     # NOTE: no `Depends(get_db)` here on purpose — this endpoint returns a
     # StreamingResponse, and the request-scoped session would be torn down before
     # the generator runs. stream_chat_response manages its own sessions.
+
+    # Reserve the message *before* calling the model: the counter must be shared
+    # when concurrent requests arrive, otherwise a free account could fire many
+    # parallel messages and slip past the daily limit together.
+    if not await quota_service.consume_message(str(current_user.id), current_user.is_premium):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                f"今日免费额度已用完（{settings.FREE_DAILY_MESSAGE_LIMIT} 条/天），"
+                "明天再来，或升级会员后不限量"
+            ),
+        )
+
     async def event_stream():
+        failed = False
         try:
             async for chunk in stream_chat_response(
                 uuid.UUID(session_id), current_user.id, request.content, current_user.is_premium
@@ -147,9 +164,15 @@ async def send_message(
 
             yield "data: [DONE]\n\n"
         except ValueError as e:
+            failed = True
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
         except Exception as e:
+            failed = True
             yield f"data: {json.dumps({'error': f'AI service error: {str(e)}'})}\n\n"
+        finally:
+            # A request that never produced an answer should not cost a message.
+            if failed:
+                await quota_service.release_message(str(current_user.id))
 
     return StreamingResponse(
         event_stream(),

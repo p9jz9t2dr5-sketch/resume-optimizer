@@ -2,68 +2,23 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from sqlalchemy import text
-
 from app.config import get_settings
-from app.database import engine, Base, async_session
+from app.database import async_session, engine
 from app.api import auth, resumes, companies, jd, chat
 from app.models import user, resume, company, job_description, chat as chat_model
 from app.services.quota_service import quota_service
+from app.services.login_throttle import login_throttle
 from app.seed_data import seed_companies
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    # Idempotent schema migration for local SQLite (create_all won't add new columns
-    # to an existing table). Safe to run every boot; ignores "column already exists".
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(
-                lambda sync_conn: sync_conn.execute(
-                    text("ALTER TABLE resumes ADD COLUMN content TEXT")
-                )
-            )
-    except Exception:
-        pass
-
-    # Same idempotent migration for the cropped-avatar column added later.
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(
-                lambda sync_conn: sync_conn.execute(
-                    text("ALTER TABLE resumes ADD COLUMN avatar_url VARCHAR(1000)")
-                )
-            )
-    except Exception:
-        pass
-
-    # Same idempotent migration for the user profile columns added later
-    # (editable display name + uploaded avatar).
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(
-                lambda sync_conn: sync_conn.execute(
-                    text("ALTER TABLE users ADD COLUMN display_name VARCHAR(100)")
-                )
-            )
-    except Exception:
-        pass
-
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(
-                lambda sync_conn: sync_conn.execute(
-                    text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(1000)")
-                )
-            )
-    except Exception:
-        pass
-
+    # The schema is owned by Alembic (`alembic upgrade head`, run by compose
+    # before the API starts); startup only does data work.
     # Redis quota (no-op locally when REDIS_URL is empty)
     await quota_service.connect()
+    # Login failure throttling shares the same Redis instance when configured.
+    await login_throttle.connect()
 
     # Auto-seed companies on first run
     try:
@@ -76,6 +31,7 @@ async def lifespan(app: FastAPI):
     yield
 
     await quota_service.disconnect()
+    await login_throttle.disconnect()
     await engine.dispose()
 
 

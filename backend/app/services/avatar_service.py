@@ -8,6 +8,7 @@ from PIL import Image, ImageOps, ImageStat
 
 from app.config import get_settings
 from app.services.llm_service import llm_service
+from app.services.storage import stored_filename, upload_url
 
 settings = get_settings()
 
@@ -119,7 +120,7 @@ def _resolve_avatar_url(avatar_url: Optional[str]) -> Optional[str]:
     # avatar_url is stored as e.g. "./uploads\\avatar_xxx.png" on Windows.
     # Match by basename so we don't double-join with UPLOAD_DIR (which already
     # lives inside the avatar_url).
-    fname = os.path.basename(avatar_url.replace("\\", "/"))
+    fname = stored_filename(avatar_url)
     if not fname:
         return None
     full = os.path.normpath(os.path.join(settings.UPLOAD_DIR, fname))
@@ -228,7 +229,7 @@ async def extract_avatar(original_path: str) -> Optional[str]:
 
         # Store with the same relative form as original_file_url so the frontend
         # URL-building logic (strip leading "./", forward-slash backslashes) works.
-        return os.path.join(settings.UPLOAD_DIR, avatar_filename)
+        return upload_url(avatar_filename)
     except Exception:
         if avatar_path and os.path.exists(avatar_path):
             try:
@@ -268,26 +269,29 @@ def store_user_avatar(data: bytes) -> str:
     avatar_filename = f"avatar_{uuid.uuid4().hex}.png"
     img.save(os.path.join(settings.UPLOAD_DIR, avatar_filename), "PNG", optimize=True)
 
-    return os.path.join(settings.UPLOAD_DIR, avatar_filename)
+    return upload_url(avatar_filename)
 
 
-def delete_stored_file(stored_url: Optional[str]) -> None:
+def delete_stored_file(stored_url: Optional[str]) -> bool:
     """Best-effort removal of a file we previously stored under UPLOAD_DIR.
 
     Only the basename is honoured, so a tampered value in the DB can never
-    delete anything outside the upload directory.
+    delete anything outside the upload directory. Returns True when a file was
+    actually removed.
     """
     if not stored_url:
-        return
-    filename = os.path.basename(stored_url.replace("\\", "/"))
+        return False
+    filename = stored_filename(stored_url)
     if not filename:
-        return
+        return False
     path = os.path.normpath(os.path.join(settings.UPLOAD_DIR, filename))
     root = os.path.normpath(settings.UPLOAD_DIR)
     if os.path.dirname(path) != root:
-        return
+        return False
     try:
         if os.path.isfile(path):
             os.remove(path)
+            return True
     except OSError:
         pass
+    return False

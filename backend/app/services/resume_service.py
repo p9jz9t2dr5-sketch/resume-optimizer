@@ -11,6 +11,7 @@ from app.services.file_parser import parse_file, allowed_file, ALLOWED_EXTENSION
 from app.services.anonymizer import anonymize_text
 from app.services.llm_service import llm_service
 from app.services.avatar_service import extract_avatar
+from app.services.storage import stored_filename, upload_url
 
 settings = get_settings()
 
@@ -91,7 +92,8 @@ async def upload_and_parse_resume(
         user_id=user_id,
         version_name=version_name,
         original_filename=file.filename,
-        original_file_url=saved_path,
+        # URL form, not the server-side path — see app/services/storage.py.
+        original_file_url=upload_url(saved_filename),
         avatar_url=avatar_url,
         content=raw_text,
         anonymized_text=anonymized_text,
@@ -141,7 +143,7 @@ def _remove_upload_files(urls: list[str]) -> list[str]:
         if not url:
             continue
         try:
-            name = os.path.basename(url.replace("\\", "/"))
+            name = stored_filename(url)
             if not name or name in (".", ".."):
                 continue
             path = os.path.join(settings.UPLOAD_DIR, name)

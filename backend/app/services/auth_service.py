@@ -2,11 +2,14 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import delete, select
 import uuid
 
 from app.config import get_settings
 from app.models.user import User
+from app.models.resume import Resume
+from app.models.chat import ChatSession, Message
+from app.models.job_description import JobDescription
 
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -67,3 +70,49 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
     if not user or not verify_password(password, user.hashed_password):
         return None
     return user
+
+
+async def delete_user_account(db: AsyncSession, user: User) -> list[str]:
+    """Delete a user and every piece of data that belongs to them.
+
+    Children are deleted explicitly, deepest first, instead of leaning on
+    ``ON DELETE CASCADE``: SQLite only enforces foreign keys when
+    ``PRAGMA foreign_keys=ON``, so the explicit order is what makes local
+    development and the test suite behave the same as Postgres.
+
+    Returns the stored file URLs that belonged to the account. The caller
+    deletes them *after* committing, so a failed commit can never leave the
+    database pointing at files that are already gone.
+    """
+    user_id = user.id
+
+    resume_files = [
+        url
+        for row in (
+            await db.execute(
+                select(Resume.original_file_url, Resume.avatar_url).where(
+                    Resume.user_id == user_id
+                )
+            )
+        ).all()
+        for url in row
+        if url
+    ]
+    stored_files = list(resume_files)
+    if user.avatar_url:
+        stored_files.append(user.avatar_url)
+
+    await db.execute(
+        delete(Message).where(
+            Message.session_id.in_(
+                select(ChatSession.id).where(ChatSession.user_id == user_id)
+            )
+        )
+    )
+    await db.execute(delete(ChatSession).where(ChatSession.user_id == user_id))
+    await db.execute(delete(JobDescription).where(JobDescription.user_id == user_id))
+    await db.execute(delete(Resume).where(Resume.user_id == user_id))
+    await db.execute(delete(User).where(User.id == user_id))
+    await db.flush()
+
+    return stored_files

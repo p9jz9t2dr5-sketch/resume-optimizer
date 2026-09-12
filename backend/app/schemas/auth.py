@@ -7,7 +7,9 @@ import uuid
 # --- Auth Schemas ---
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str
+    # 8 characters minimum, and capped at 72 because bcrypt silently ignores
+    # everything past 72 bytes — rejecting is friendlier than truncating.
+    password: str = Field(min_length=8, max_length=72)
 
 
 class LoginRequest(BaseModel):
