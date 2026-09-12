@@ -2,6 +2,12 @@ export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
+/** Message of an unknown thrown value, falling back to a caller-supplied copy. */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 export function formatDate(date: string | Date): string {
   return new Date(date).toLocaleDateString("zh-CN", {
     year: "numeric",

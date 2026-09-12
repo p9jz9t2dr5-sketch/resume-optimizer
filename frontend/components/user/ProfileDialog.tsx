@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { Camera, Loader2, Trash2, X } from "lucide-react";
 import { mediaUrl } from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/stores/toastStore";
 import UserAvatar, { displayNameOf } from "./UserAvatar";
@@ -12,37 +15,33 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
 
 interface ProfileDialogProps {
-  open: boolean;
   onClose: () => void;
 }
 
-export default function ProfileDialog({ open, onClose }: ProfileDialogProps) {
+/**
+ * Profile editor. Mounted by UserMenu only while it is open, so the form state
+ * below is seeded once per open and there is no reset effect to keep in sync.
+ */
+export default function ProfileDialog({ onClose }: ProfileDialogProps) {
   const user = useAuthStore((s) => s.user);
   const updateProfile = useAuthStore((s) => s.updateProfile);
   const uploadAvatar = useAuthStore((s) => s.uploadAvatar);
   const removeAvatar = useAuthStore((s) => s.removeAvatar);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
+  const router = useRouter();
   const toast = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState("");
+  // The email-prefix fallback can be longer than the limit, so cap only that
+  // derived default — a name the user actually saved is shown as-is.
+  const [name, setName] = useState(
+    () => user?.display_name?.trim() || displayNameOf(user).slice(0, MAX_NAME_LENGTH)
+  );
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  // Re-seed the form every time the dialog opens.
-  useEffect(() => {
-    if (!open) return;
-    // The email-prefix fallback can be longer than the limit, so cap only that
-    // derived default — a name the user actually saved is shown as-is.
-    const saved = user?.display_name?.trim();
-    setName(saved || displayNameOf(user).slice(0, MAX_NAME_LENGTH));
-    setFile(null);
-    setPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Release the object URL of a preview that is being replaced or dropped.
   useEffect(
@@ -53,15 +52,12 @@ export default function ProfileDialog({ open, onClose }: ProfileDialogProps) {
   );
 
   useEffect(() => {
-    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !saving) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, saving, onClose]);
-
-  if (!open) return null;
+  }, [saving, onClose]);
 
   const handlePickFile = (picked: File | null) => {
     if (!picked) return;
@@ -121,17 +117,34 @@ export default function ProfileDialog({ open, onClose }: ProfileDialogProps) {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      onClose();
+      router.push("/");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "注销失败，请稍后重试"));
+      setDeleting(false);
+    }
+  };
+
   const previewSrc = preview ?? mediaUrl(user?.avatar_url);
   const shownName = name.trim() || displayNameOf(user);
 
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={() => !saving && onClose()}
-      />
+  // Rendered through a portal so it escapes the header, which becomes the
+  // containing block for position:fixed once it picks up backdrop-blur on
+  // scroll — without this the dialog is positioned against the 56px header
+  // instead of the viewport and gets clipped at the top.
+  return createPortal(
+    <div className="fixed inset-0 z-[70] overflow-y-auto overscroll-contain p-4">
+      <div className="flex min-h-full items-center justify-center">
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => !saving && onClose()}
+        />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-bg-card p-6 shadow-2xl shadow-black/20">
+        <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-bg-card p-6 shadow-2xl shadow-black/20">
         <button
           type="button"
           onClick={() => !saving && onClose()}
@@ -214,7 +227,7 @@ export default function ProfileDialog({ open, onClose }: ProfileDialogProps) {
           <button
             type="button"
             onClick={onClose}
-            disabled={saving}
+            disabled={saving || deleting}
             className="btn-ghost px-4 py-2 text-sm disabled:opacity-50"
           >
             取消
@@ -222,14 +235,55 @@ export default function ProfileDialog({ open, onClose }: ProfileDialogProps) {
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || deleting}
             className="btn-gradient flex items-center gap-2 px-5 py-2 text-sm disabled:opacity-60"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             保存
           </button>
         </div>
+
+        {/* Danger zone — a second click is required before anything is deleted. */}
+        <div className="mt-6 rounded-xl border border-danger/30 bg-danger/5 p-4">
+          <p className="text-sm font-medium text-text-primary">注销账号</p>
+          <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+            会同时删除你的简历、面试记录和已上传的文件，此操作不可恢复。
+          </p>
+
+          {confirmingDelete ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex items-center gap-1.5 rounded-xl bg-danger px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                确认永久删除
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deleting}
+                className="rounded-xl border border-border px-4 py-2 text-sm text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50"
+              >
+                我再想想
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              disabled={saving || deleting}
+              className="mt-3 rounded-xl border border-danger/40 px-4 py-2 text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:opacity-50"
+            >
+              删除我的账号
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+      </div>
+    </div>,
+    document.body
   );
 }

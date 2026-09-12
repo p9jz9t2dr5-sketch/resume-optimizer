@@ -54,7 +54,7 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 text-text-secondary hover:text-text-primary transition-colors text-sm font-medium"
               >
                 <MessageSquare className="w-4 h-4" />
-                AI 对话
+                模拟面试
               </Link>
             </div>
           )}
@@ -120,7 +120,7 @@ export default function Navbar() {
               className="flex items-center gap-2.5 text-text-secondary hover:text-text-primary hover:bg-slate-700/40 rounded-lg px-3 py-3 text-sm font-medium transition-colors"
             >
               <MessageSquare className="w-5 h-5" />
-              AI 对话
+              模拟面试
             </Link>
           </div>
         </div>

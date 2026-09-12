@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { useResumeStore, type Resume } from "@/stores/resumeStore";
 import { useToast } from "@/stores/toastStore";
+import { getErrorMessage } from "@/lib/utils";
 import { Upload, FileText, CheckCircle, Loader2, Eye } from "lucide-react";
 
 interface ResumeUploaderProps {
@@ -22,8 +23,8 @@ export default function ResumeUploader({ onPreview }: ResumeUploaderProps) {
       try {
         const result = await uploadResume(file);
         toast.success(`简历 "${result.original_filename}" 已上传并完成隐私保护处理`);
-      } catch (e: any) {
-        toast.error(e.message || "上传失败，请重试");
+      } catch (e) {
+        toast.error(getErrorMessage(e, "上传失败，请重试"));
       }
     },
     [uploadResume, toast]

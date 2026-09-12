@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
 import { useResumeStore, type Resume } from "@/stores/resumeStore";
 import ResumeUploader from "@/components/resume/ResumeUploader";
-import ResumeExportModal from "@/components/resume/ResumeExportModal";
+import ResumeTextPreview from "@/components/resume/ResumeTextPreview";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { FileText, Eye, Download, Shield, Image as ImageIcon, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { resumeApi, API_BASE } from "@/lib/api";
+import { resumeApi } from "@/lib/api";
 import { useToast } from "@/stores/toastStore";
 
 function structuredSummary(parsedData: any): string | null {
@@ -216,16 +215,10 @@ export default function ResumesPage() {
       </div>
 
       {previewResume && (
-        <ResumeExportModal
+        <ResumeTextPreview
+          title={previewResume.original_filename}
           text={previewResume.content || previewResume.anonymized_text || ""}
-          filename={previewResume.original_filename.replace(/\.[^.]+$/, "")}
           onClose={() => setPreviewResume(null)}
-          structured={previewResume.parsed_data?.structured || null}
-          avatarUrl={
-            previewResume.avatar_url
-              ? `${API_BASE}${previewResume.avatar_url.replace(/^\./, "").replace(/\\/g, "/")}`
-              : null
-          }
         />
       )}
 

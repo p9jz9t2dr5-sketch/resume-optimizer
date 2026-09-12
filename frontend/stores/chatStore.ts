@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { chatApi } from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Message {
   id: string;
@@ -50,8 +51,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const data = await chatApi.listSessions();
       set({ sessions: data.sessions as ChatSession[] });
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: getErrorMessage(e, "加载会话失败") });
     }
   },
 
@@ -66,8 +67,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const messages = await chatApi.getMessages(sessionId);
       set({ messages: messages as Message[], currentSessionId: sessionId });
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: getErrorMessage(e, "操作失败") });
     }
   },
 
@@ -108,8 +109,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Refresh sessions to update message counts
       await get().fetchSessions();
-    } catch (e: any) {
-      set({ isStreaming: false, error: e.message });
+    } catch (e) {
+      set({ isStreaming: false, error: getErrorMessage(e, "发送消息失败") });
     }
   },
 
@@ -123,8 +124,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (get().currentSessionId === sessionId) {
         set({ currentSessionId: null, messages: [] });
       }
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: getErrorMessage(e, "操作失败") });
       throw e;
     }
   },
@@ -133,8 +134,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       await chatApi.clearSessions();
       set({ sessions: [], currentSessionId: null, messages: [] });
-    } catch (e: any) {
-      set({ error: e.message });
+    } catch (e) {
+      set({ error: getErrorMessage(e, "操作失败") });
       throw e;
     }
   },

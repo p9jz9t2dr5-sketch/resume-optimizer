@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { UserProfile } from "@/lib/api";
 
 /**
@@ -29,10 +29,10 @@ export default function UserAvatar({
   className = "h-8 w-8",
   textClassName = "text-sm",
 }: UserAvatarProps) {
-  const [broken, setBroken] = useState(false);
-
-  // A new upload should get another chance to load even if the old one failed.
-  useEffect(() => setBroken(false), [src]);
+  // Remember *which* URL failed rather than a boolean, so a new upload always
+  // gets another chance to load without resetting state inside an effect.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const broken = !!src && failedSrc === src;
 
   if (src && !broken) {
     return (
@@ -41,7 +41,7 @@ export default function UserAvatar({
         src={src}
         alt={name}
         className={`${className} shrink-0 rounded-full border border-border bg-bg-secondary object-cover`}
-        onError={() => setBroken(true)}
+        onError={() => setFailedSrc(src)}
       />
     );
   }

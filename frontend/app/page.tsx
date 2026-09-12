@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useResumeStore, type Resume } from "@/stores/resumeStore";
 import { useWorkbenchStore } from "@/stores/workbenchStore";
 import { useChatStore } from "@/stores/chatStore";
 import ResumeUploader from "@/components/resume/ResumeUploader";
-import ResumeExportModal, { type ResumeTemplateStyle } from "@/components/resume/ResumeExportModal";
+import ResumeTextPreview from "@/components/resume/ResumeTextPreview";
 import JDPaster from "@/components/company/JDPaster";
 import MatchReport from "@/components/chat/MatchReport";
 import ScoreRing from "@/components/chat/ScoreRing";
 import LandingHeader from "@/components/landing/LandingHeader";
-import { jdApi, resumeApi, API_BASE } from "@/lib/api";
+import { jdApi, resumeApi } from "@/lib/api";
+import { getErrorMessage } from "@/lib/utils";
 import { useToast } from "@/stores/toastStore";
-import { Sparkles, Upload, FileSearch, MessageSquare, AlertTriangle, Wand2, Copy, Check, ArrowRight, Download, LayoutTemplate } from "lucide-react";
+import { Sparkles, Upload, FileSearch, MessageSquare, AlertTriangle, Wand2, Copy, Check } from "lucide-react";
 import MarkdownText from "@/components/MarkdownText";
 
 // Sample data for one-click testing (avoids needing a real file / pasting a JD)
@@ -85,133 +86,13 @@ AI 应用开发工程师（RAG / Agent 方向）
 ## 自我评价
 5 年 Python 后端与 AI 应用开发经验，熟悉 RAG / Agent 全栈落地，擅长将业务问题拆解为可量化的技术方案并推动上线。`;
 
-// Mini resume swatches for the hero — the same visual language as the reference
-// landing page's floating template thumbnails.
-function ResumeSwatch({ variant }: { variant: "dark" | "classic" | "minimal" | "two-column" }) {
-  return (
-    <div className="flex h-full w-full flex-col bg-white text-zinc-900">
-      {variant === "dark" && (
-        <>
-          <div className="relative px-2 py-2" style={{ background: "linear-gradient(135deg, #1a1a2e, #0f3460)" }}>
-            <div className="absolute -right-1 -top-1 h-4 w-4 rounded-full bg-accent/20" />
-            <div className="h-1.5 w-10 rounded-full bg-white/90" />
-            <div className="mt-0.5 h-1 w-7 rounded-full bg-white/50" />
-            <div className="mt-0.5 flex gap-0.5">
-              <div className="h-0.5 w-3 rounded-full bg-white/30" />
-              <div className="h-0.5 w-3 rounded-full bg-white/30" />
-            </div>
-          </div>
-          <div className="flex-1 space-y-1.5 p-2">
-            <div>
-              <div className="h-1 w-9 rounded-full bg-[#0f3460]" />
-              <div className="mt-0.5 space-y-0.5">
-                <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-                <div className="h-0.5 w-3/4 rounded-full bg-zinc-200" />
-              </div>
-            </div>
-            <div>
-              <div className="h-1 w-7 rounded-full bg-[#0f3460]" />
-              <div className="mt-0.5 space-y-0.5">
-                <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-                <div className="h-0.5 w-4/5 rounded-full bg-zinc-200" />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-      {variant === "classic" && (
-        <>
-          <div className="mb-1.5 border-b-2 border-zinc-700 pb-1.5">
-            <div className="mx-auto h-1.5 w-12 rounded-full bg-zinc-700" />
-            <div className="mx-auto mt-1 h-1 w-8 rounded-full bg-zinc-400" />
-            <div className="mx-auto mt-0.5 flex justify-center gap-1">
-              <div className="h-0.5 w-4 rounded-full bg-zinc-300" />
-              <div className="h-0.5 w-4 rounded-full bg-zinc-300" />
-            </div>
-          </div>
-          <div className="flex-1 space-y-1.5 p-2">
-            <div>
-              <div className="h-1 w-10 rounded-full bg-zinc-600" />
-              <div className="mt-0.5 space-y-0.5">
-                <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-                <div className="h-0.5 w-4/5 rounded-full bg-zinc-200" />
-              </div>
-            </div>
-            <div>
-              <div className="h-1 w-8 rounded-full bg-zinc-600" />
-              <div className="mt-0.5 space-y-0.5">
-                <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-                <div className="h-0.5 w-3/4 rounded-full bg-zinc-200" />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-      {variant === "minimal" && (
-        <>
-          <div className="mb-2 p-2.5">
-            <div className="h-1.5 w-10 rounded-full bg-zinc-700" />
-            <div className="mt-0.5 flex gap-1">
-              <div className="h-0.5 w-3 rounded-full bg-zinc-300" />
-              <div className="h-0.5 w-3 rounded-full bg-zinc-300" />
-              <div className="h-0.5 w-3 rounded-full bg-zinc-300" />
-            </div>
-          </div>
-          <div className="mb-1.5 h-px w-full bg-zinc-200" />
-          <div className="flex-1 space-y-1.5 px-2.5 pb-2.5">
-            <div className="space-y-0.5">
-              <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-              <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-              <div className="h-0.5 w-2/3 rounded-full bg-zinc-200" />
-            </div>
-            <div className="h-px w-full bg-zinc-100" />
-            <div className="space-y-0.5">
-              <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-              <div className="h-0.5 w-4/5 rounded-full bg-zinc-200" />
-            </div>
-          </div>
-        </>
-      )}
-      {variant === "two-column" && (
-        <div className="flex h-full overflow-hidden">
-          <div className="w-[35%] p-1.5" style={{ background: "linear-gradient(180deg, #1a1a2e, #2d2d44)" }}>
-            <div className="mb-1.5 mx-auto h-4 w-4 rounded-full bg-white/20" />
-            <div className="mx-auto h-1 w-8 rounded-full bg-white/60" />
-            <div className="mt-1 space-y-1">
-              <div className="h-0.5 w-full rounded-full bg-white/20" />
-              <div className="h-0.5 w-4/5 rounded-full bg-white/20" />
-              <div className="h-0.5 w-full rounded-full bg-white/20" />
-            </div>
-          </div>
-          <div className="flex-1 space-y-1.5 p-2">
-            <div>
-              <div className="h-1 w-9 rounded-full bg-zinc-600" />
-              <div className="mt-0.5 space-y-0.5">
-                <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-                <div className="h-0.5 w-4/5 rounded-full bg-zinc-200" />
-              </div>
-            </div>
-            <div>
-              <div className="h-1 w-7 rounded-full bg-zinc-600" />
-              <div className="mt-0.5 space-y-0.5">
-                <div className="h-0.5 w-full rounded-full bg-zinc-200" />
-                <div className="h-0.5 w-3/4 rounded-full bg-zinc-200" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 const AUTO_CYCLE_MS = 5000;
 
 const FEATURE_TABS = [
   { key: "upload", icon: Upload, title: "上传简历", desc: "支持 PDF / Word / 图片，AI 解析后自动脱敏并保留你的真实信息。" },
   { key: "match", icon: FileSearch, title: "分析匹配", desc: "把目标岗位描述逐条比对你的经历，给出可解释的匹配度评分与改进点。" },
-  { key: "optimize", icon: MessageSquare, title: "AI 优化", desc: "用 STAR 原则逐段改写、量化成果，多轮对话引导你写出更可信的简历。" },
-  { key: "export", icon: Download, title: "一键导出", desc: "优化后套用不同版式，一键导出 PDF / Word / 图片，投递即用。" },
+  { key: "optimize", icon: Wand2, title: "AI 优化", desc: "用 STAR 原则逐段改写、量化成果，把「做了什么」写成可验证的结果。" },
+  { key: "interview", icon: MessageSquare, title: "模拟面试", desc: "资深面试官围绕你的项目经历逐轮追问，一次只问一个问题，答完还能让它点评。" },
 ] as const;
 
 function DemoUpload() {
@@ -281,44 +162,38 @@ function DemoOptimize() {
   );
 }
 
-function DemoExport() {
-  const formats = [
-    { label: "PDF", cls: "bg-danger/15 text-danger" },
-    { label: "Word", cls: "bg-accent-soft text-accent" },
-    { label: "TXT", cls: "bg-warning/15 text-warning" },
-    { label: "图片", cls: "bg-success/15 text-success" },
-  ];
+function FeatureDemo({ feature }: { feature: string }) {
+  if (feature === "match") return <DemoMatch />;
+  if (feature === "optimize") return <DemoOptimize />;
+  if (feature === "interview") return <DemoInterview />;
+  return <DemoUpload />;
+}
+
+function DemoInterview() {
   return (
-    <div className="flex h-full items-center justify-center gap-6 p-6">
-      <div className="flex flex-col items-center gap-2">
-        <div className="relative h-20 w-16 rounded-lg border-2 border-border bg-bg-secondary/60">
-          <div className="absolute right-0 top-0 h-3 w-3 border-b-2 border-l-2 border-text-muted bg-bg-primary" />
-          <div className="mt-5 space-y-1 px-1.5">
-            <div className="h-1 w-full rounded-full bg-text-muted/50" />
-            <div className="h-1 w-3/4 rounded-full bg-text-muted/50" />
-            <div className="h-1 w-full rounded-full bg-text-muted/50" />
-          </div>
+    <div className="flex h-full flex-col justify-center gap-3 p-6">
+      <div className="flex justify-start">
+        <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-border bg-bg-secondary/60 px-4 py-2.5 text-sm text-text-secondary">
+          <span className="font-medium text-accent">面试官 </span>
+          你提到把订单接口拆成了 6 个微服务，拆分粒度是按业务边界还是按代码规模？
         </div>
-        <Download className="h-4 w-4 text-accent" />
       </div>
-      <div className="flex flex-col gap-1.5">
-        {formats.map((f) => (
-          <span key={f.label} className={`rounded-md px-2.5 py-0.5 text-[11px] font-semibold ${f.cls}`}>{f.label}</span>
-        ))}
+      <div className="flex justify-end">
+        <div className="max-w-[75%] rounded-2xl rounded-br-md bg-accent px-4 py-2.5 text-sm text-accent-ink">
+          按业务边界拆的，订单创建和履约链路分开了
+        </div>
+      </div>
+      <div className="flex justify-start">
+        <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-border bg-bg-secondary/60 px-4 py-2.5 text-sm text-text-secondary">
+          <span className="font-medium text-accent">面试官 </span>
+          那两个服务之间的数据一致性是怎么保证的？
+        </div>
       </div>
     </div>
   );
 }
 
-function FeatureDemo({ feature }: { feature: string }) {
-  if (feature === "match") return <DemoMatch />;
-  if (feature === "optimize") return <DemoOptimize />;
-  if (feature === "export") return <DemoExport />;
-  return <DemoUpload />;
-}
-
 export default function HomePage() {
-  const { isAuthenticated } = useAuthStore();
   const { selectedResume, uploadResume, refreshResume } = useResumeStore();
   const { startSession } = useChatStore();
   const {
@@ -339,14 +214,6 @@ export default function HomePage() {
   const [isPolishing, setIsPolishing] = useState(false);
   const [polishCopied, setPolishCopied] = useState(false);
   const [previewResume, setPreviewResume] = useState<Resume | null>(null);
-  const [exportPolished, setExportPolished] = useState<{
-    text: string;
-    filename: string;
-    structured: any | null;
-    avatarUrl: string | null;
-    template: ResumeTemplateStyle;
-  } | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
 
   // Restore persisted resume selection + workbench (JD / analysis / polish) after
   // mount. Both stores use `skipHydration` so the first client render matches the
@@ -390,8 +257,8 @@ export default function HomePage() {
       const result: any = await jdApi.parse(jdText, selectedResume.id);
       setJdResult(result);
       setMatchReport(result.match_report || null);
-    } catch (e: any) {
-      toast.error(e.message || "分析失败，请重试");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "分析失败，请重试"));
     } finally {
       setIsAnalyzing(false);
     }
@@ -402,8 +269,8 @@ export default function HomePage() {
     try {
       const sessionId = await startSession(selectedResume.id, jdText);
       router.push(`/chat/${sessionId}`);
-    } catch (e: any) {
-      toast.error(e.message || "创建对话失败");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "创建对话失败"));
     }
   };
 
@@ -440,8 +307,8 @@ export default function HomePage() {
       // Best-effort: also re-sync from the backend so a page reload keeps the
       // optimized version. Non-fatal if it fails.
       await refreshResume(selectedResume.id).catch(() => {});
-    } catch (e: any) {
-      toast.error(e.message || "润色失败，请重试");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "润色失败，请重试"));
     } finally {
       setIsPolishing(false);
     }
@@ -451,19 +318,6 @@ export default function HomePage() {
     navigator.clipboard.writeText(polishedContent);
     setPolishCopied(true);
     setTimeout(() => setPolishCopied(false), 2000);
-  };
-
-  const handleExportPolished = (template: ResumeTemplateStyle = "auto") => {
-    if (!selectedResume || !polishedContent.trim()) return;
-    setExportPolished({
-      text: polishedContent,
-      filename: `${selectedResume.original_filename.replace(/\.[^.]+$/, "")}_AI优化版`,
-      structured: selectedResume.parsed_data?.structured || null,
-      avatarUrl: selectedResume.avatar_url
-        ? `${API_BASE}${selectedResume.avatar_url.replace(/^\./, "").replace(/\\/g, "/")}`
-        : null,
-      template,
-    });
   };
 
   const handleLoadSampleJD = () => {
@@ -477,8 +331,8 @@ export default function HomePage() {
       const result = await uploadResume(file);
       setPreviewResume(result);
       toast.success("已载入示例简历");
-    } catch (e: any) {
-      toast.error(e.message || "示例简历载入失败");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "示例简历载入失败"));
     }
   };
 
@@ -529,7 +383,7 @@ export default function HomePage() {
         <div className="relative z-10 mx-auto max-w-4xl text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent-soft mb-6 px-4 py-1.5 text-sm font-medium text-accent">
             <Sparkles className="h-3.5 w-3.5" />
-            AI 驱动的简历优化助手
+            AI 简历优化 · 模拟面试助手
           </span>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
@@ -539,7 +393,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-text-secondary sm:text-lg md:text-xl">
-            上传简历并粘贴目标岗位描述，AI 给出匹配度评分，再用 STAR 原则逐段改写、量化成果。
+            上传简历并粘贴目标岗位描述，AI 给出匹配度评分、按 STAR 原则逐段改写，再用一场模拟面试把经历讲清楚。
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -558,23 +412,6 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Floating resume swatches */}
-          <div className="hidden md:block">
-            <div className="mt-16 flex items-center justify-center gap-4 sm:gap-6 lg:mt-20">
-              <div className="animate-float h-52 w-36 -rotate-6 overflow-hidden rounded-xl border border-border shadow-2xl shadow-black/40">
-                <ResumeSwatch variant="dark" />
-              </div>
-              <div className="animate-float-delayed h-64 w-48 overflow-hidden rounded-xl border border-accent/30 shadow-2xl shadow-accent/20">
-                <ResumeSwatch variant="classic" />
-              </div>
-              <div
-                className="animate-float h-52 w-36 rotate-6 overflow-hidden rounded-xl border border-border shadow-2xl shadow-black/40"
-                style={{ animationDelay: "2s" }}
-              >
-                <ResumeSwatch variant="minimal" />
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -583,7 +420,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">功能特色</h2>
-            <p className="mt-4 text-text-secondary sm:text-lg">从上传到导出，每一步都由 AI 辅助完成。</p>
+            <p className="mt-4 text-text-secondary sm:text-lg">从上传简历到逐段优化，每一步都由 AI 辅助完成。</p>
           </div>
 
           <div className="-mx-4 mb-10 overflow-x-auto px-4 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
@@ -743,7 +580,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-3 flex-wrap">
                         <button onClick={handleStartChat} className="btn-gradient flex items-center gap-2">
                           <MessageSquare className="w-4 h-4" />
-                          进入 AI 对话优化
+                          开始模拟面试
                         </button>
                         <button
                           onClick={handlePolish}
@@ -776,15 +613,7 @@ export default function HomePage() {
                               className="btn-gradient flex items-center gap-1.5 text-sm py-1.5 px-3"
                             >
                               <MessageSquare className="w-4 h-4" />
-                              进入 AI 对话优化
-                            </button>
-                            <button
-                              onClick={() => handleExportPolished()}
-                              className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent transition-colors px-3 py-1.5 rounded-lg border border-border hover:border-accent"
-                              title="选择模板并预览导出 PDF/PNG"
-                            >
-                              <LayoutTemplate className="w-4 h-4" />
-                              套用模板并导出
+                              开始模拟面试
                             </button>
                             <button
                               onClick={handleCopyPolished}
@@ -842,7 +671,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-3 mt-6 flex-wrap">
                       <button onClick={handleStartChat} className="btn-gradient flex items-center gap-2">
                         <MessageSquare className="w-4 h-4" />
-                        进入 AI 对话优化
+                        开始模拟面试
                       </button>
                       <button
                         onClick={handlePolish}
@@ -877,15 +706,7 @@ export default function HomePage() {
                             className="btn-gradient flex items-center gap-1.5 text-sm py-1.5 px-3"
                           >
                             <MessageSquare className="w-4 h-4" />
-                            进入 AI 对话优化
-                          </button>
-                          <button
-                            onClick={() => handleExportPolished()}
-                            className="flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent transition-colors px-3 py-1.5 rounded-lg border border-border hover:border-accent"
-                            title="选择模板并预览导出 PDF/PNG"
-                          >
-                            <LayoutTemplate className="w-4 h-4" />
-                              套用模板并导出
+                            开始模拟面试
                           </button>
                           <button
                             onClick={handleCopyPolished}
@@ -936,7 +757,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-border bg-bg-secondary/40">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 gap-8 py-12 sm:grid-cols-2 sm:py-16 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+          <div className="grid grid-cols-1 gap-8 py-12 sm:grid-cols-2 sm:py-16 lg:grid-cols-[1.5fr_1fr_1fr]">
             <div className="sm:col-span-2 lg:col-span-1">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-accent" />
@@ -958,15 +779,6 @@ export default function HomePage() {
               <ul className="mt-4 space-y-3">
                 <li><a href="#features" className="block text-sm text-text-muted transition-colors hover:text-text-primary">匹配分析</a></li>
                 <li><a href="#features" className="block text-sm text-text-muted transition-colors hover:text-text-primary">AI 优化</a></li>
-                <li><a href="#tool" className="block text-sm text-text-muted transition-colors hover:text-text-primary">导出下载</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-text-primary">公司</h3>
-              <ul className="mt-4 space-y-3">
-                <li><span className="block text-sm text-text-muted">关于我们</span></li>
-                <li><span className="block text-sm text-text-muted">隐私政策</span></li>
-                <li><span className="block text-sm text-text-muted">服务条款</span></li>
               </ul>
             </div>
           </div>
@@ -977,27 +789,10 @@ export default function HomePage() {
       </footer>
 
       {previewResume && (
-        <ResumeExportModal
+        <ResumeTextPreview
+          title={previewResume.original_filename}
           text={previewResume.content || previewResume.anonymized_text || ""}
-          filename={previewResume.original_filename.replace(/\.[^.]+$/, "")}
           onClose={() => setPreviewResume(null)}
-          structured={previewResume.parsed_data?.structured || null}
-          avatarUrl={
-            previewResume.avatar_url
-              ? `${API_BASE}${previewResume.avatar_url.replace(/^\./, "").replace(/\\/g, "/")}`
-              : null
-          }
-        />
-      )}
-
-      {exportPolished && (
-        <ResumeExportModal
-          text={exportPolished.text}
-          filename={exportPolished.filename}
-          onClose={() => setExportPolished(null)}
-          structured={exportPolished.structured}
-          avatarUrl={exportPolished.avatarUrl}
-          defaultTemplate={exportPolished.template}
         />
       )}
     </div>

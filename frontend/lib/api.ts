@@ -57,8 +57,21 @@ async function tryRefresh(): Promise<string | null> {
 
 function redirectToLogin() {
   if (typeof window !== "undefined") {
+    // This module is not a component, so it has no router to push with; a full
+    // location change is the intended behaviour here (it also drops the stale
+    // in-memory auth state).
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/login";
   }
+}
+
+/** FastAPI reports human-readable failures in `detail`; fall back when absent. */
+function errorDetail(body: unknown, fallback: string): string {
+  if (body && typeof body === "object" && "detail" in body) {
+    const detail = (body as { detail?: unknown }).detail;
+    if (typeof detail === "string" && detail.trim()) return detail;
+  }
+  return fallback;
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
@@ -99,13 +112,11 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 
   if (res.status === 429) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error((detail as any).detail || "Rate limit exceeded");
+    throw new Error(errorDetail(await res.json().catch(() => null), "Rate limit exceeded"));
   }
 
   if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error((detail as any).detail || `HTTP ${res.status}`);
+    throw new Error(errorDetail(await res.json().catch(() => null), `HTTP ${res.status}`));
   }
 
   return res.json();
@@ -146,6 +157,13 @@ export const authApi = {
 
   removeAvatar: () =>
     request<UserProfile>("/auth/me/avatar", { method: "DELETE" }),
+
+  /** Irreversible: removes the account, its data and its uploaded files. */
+  deleteAccount: () =>
+    request<{ deleted: boolean; files_removed: number; files_tracked: number }>(
+      "/auth/me",
+      { method: "DELETE" }
+    ),
 
   getStats: () => request<{
     resume_count: number;
@@ -212,8 +230,7 @@ export const resumeApi = {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error((err as any).detail || "Polish error");
+      throw new Error(errorDetail(await response.json().catch(() => null), "Polish error"));
     }
 
     const reader = response.body?.getReader();
@@ -302,8 +319,7 @@ export const chatApi = {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error((err as any).detail || "Stream error");
+      throw new Error(errorDetail(await response.json().catch(() => null), "Stream error"));
     }
 
     const reader = response.body?.getReader();

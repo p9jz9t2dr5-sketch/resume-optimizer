@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { ExternalLink, MapPin, Briefcase } from "lucide-react";
 
 interface CompanyCardProps {
@@ -15,10 +16,11 @@ interface CompanyCardProps {
 }
 
 export default function CompanyCard({ company }: CompanyCardProps) {
+  const router = useRouter();
 
   const handlePositionClick = (position: string) => {
     const jdTemplate = `岗位名称：${position}\n公司：${company.name}${company.industry ? `\n行业：${company.industry}` : ""}\n\n请在此粘贴或编辑完整的职位描述（JD）...`;
-    window.location.href = "/?jd=" + encodeURIComponent(jdTemplate) + "#upload-section";
+    router.push("/?jd=" + encodeURIComponent(jdTemplate) + "#upload-section");
   };
 
   return (

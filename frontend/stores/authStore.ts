@@ -23,6 +23,7 @@ interface AuthState {
   updateProfile: (displayName: string) => Promise<void>;
   uploadAvatar: (file: File) => Promise<void>;
   removeAvatar: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -76,6 +77,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   removeAvatar: async () => {
     const user = await authApi.removeAvatar();
     set({ user, isAuthenticated: true });
+  },
+
+  deleteAccount: async () => {
+    await authApi.deleteAccount();
+    clearTokens();
+    set({ user: null, stats: null, isAuthenticated: false });
   },
 
   fetchStats: async () => {

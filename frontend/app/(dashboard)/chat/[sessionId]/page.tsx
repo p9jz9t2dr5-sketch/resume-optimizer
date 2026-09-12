@@ -37,7 +37,6 @@ export default function ChatDetailPage() {
 
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const {
-    currentSessionId,
     messages,
     isStreaming,
     streamingContent,

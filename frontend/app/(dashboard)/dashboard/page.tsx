@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useResumeStore } from "@/stores/resumeStore";
 import { useChatStore } from "@/stores/chatStore";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { FileText, MessageSquare, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { FileText, MessageSquare, ArrowRight, Plus, Trash2, Sparkles } from "lucide-react";
 import { useToast } from "@/stores/toastStore";
 
 type ConfirmTarget =
@@ -45,7 +45,7 @@ export default function DashboardPage() {
         toast.success("简历记录已删除");
       } else {
         await deleteSession(confirmTarget.id);
-        toast.success("对话/面试记录已删除");
+        toast.success("面试记录已删除");
       }
       await fetchStats().catch(() => {});
     } catch {
@@ -75,10 +75,16 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-8">
+      <div className="grid sm:grid-cols-3 gap-4 mb-8">
         {[
           { icon: FileText, label: "简历版本", value: stats?.resume_count || 0, color: "text-accent-purple" },
-          { icon: MessageSquare, label: "优化会话", value: stats?.session_count || 0, color: "text-accent-blue" },
+          { icon: MessageSquare, label: "模拟面试", value: stats?.session_count || 0, color: "text-accent-blue" },
+          {
+            icon: Sparkles,
+            label: stats?.is_premium ? "今日消息（会员不限量）" : "今日消息 / 每日额度",
+            value: `${stats?.messages_today ?? 0} / ${stats?.is_premium ? "∞" : (stats?.daily_limit ?? 20)}`,
+            color: "text-accent-cyan",
+          },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-4">
             <stat.icon className={`w-5 h-5 ${stat.color} mb-2`} />
@@ -133,7 +139,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-accent-blue" />
-              最近对话
+              最近面试
             </h2>
             <Link href="/chat" className="text-sm text-accent-cyan hover:underline flex items-center gap-1">
               查看全部 <ArrowRight className="w-3 h-3" />
@@ -161,7 +167,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => setConfirmTarget({ type: "session", id: s.id, title: s.title })}
                     className="p-2 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
-                    title="删除这条对话/面试记录"
+                    title="删除这条面试记录"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -180,7 +186,7 @@ export default function DashboardPage() {
           confirmTarget?.type === "resume"
             ? `确定要删除简历记录「${confirmTarget.name}」吗？对应的上传文件与优化结果会一并删除，不可恢复。`
             : confirmTarget
-              ? `确定要删除「${confirmTarget.title}」这条对话/面试记录吗？其中的消息会一并删除，不可恢复。`
+              ? `确定要删除「${confirmTarget.title}」这条面试记录吗？其中的消息会一并删除，不可恢复。`
               : ""
         }
         loading={isDeleting}

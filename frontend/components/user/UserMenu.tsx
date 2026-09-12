@@ -114,7 +114,9 @@ export default function UserMenu() {
         </div>
       )}
 
-      <ProfileDialog open={editing} onClose={() => setEditing(false)} />
+      {/* Mounted only while open: the dialog is a portal with form state that
+          should start fresh on every open. */}
+      {editing && <ProfileDialog onClose={() => setEditing(false)} />}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/stores/toastStore";
+import { getErrorMessage } from "@/lib/utils";
 import { Sparkles, Mail, Lock, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function RegisterPage() {
@@ -25,8 +26,8 @@ export default function RegisterPage() {
       setError("两次输入的密码不一致");
       return;
     }
-    if (password.length < 6) {
-      setError("密码长度至少 6 位");
+    if (password.length < 8) {
+      setError("密码长度至少 8 位");
       return;
     }
 
@@ -35,8 +36,8 @@ export default function RegisterPage() {
       await register(email, password);
       toast.success("注册成功，欢迎加入！");
       router.push("/dashboard");
-    } catch (e: any) {
-      setError(e.message || "注册失败，请重试");
+    } catch (e) {
+      setError(getErrorMessage(e, "注册失败，请重试"));
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +77,7 @@ export default function RegisterPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                className="glass-input w-full pl-10 pr-4 py-2.5 text-sm" placeholder="至少 6 位" required />
+                className="glass-input w-full pl-10 pr-4 py-2.5 text-sm" placeholder="至少 8 位" required />
             </div>
           </div>
 

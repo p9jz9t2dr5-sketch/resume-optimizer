@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/stores/toastStore";
+import { getErrorMessage } from "@/lib/utils";
 import { Sparkles, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
@@ -23,8 +24,8 @@ export default function LoginPage() {
       await login(email, password);
       toast.success("登录成功");
       router.push("/dashboard");
-    } catch (e: any) {
-      toast.error(e.message || "登录失败，请检查邮箱和密码");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "登录失败，请检查邮箱和密码"));
     } finally {
       setIsLoading(false);
     }
