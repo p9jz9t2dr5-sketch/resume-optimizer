@@ -27,7 +27,7 @@ export default function JDPaster({ value, onChange }: JDPasterProps) {
       />
       <button
         onClick={handlePasteFromClipboard}
-        className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700/80 text-xs text-text-secondary hover:text-text-primary transition-colors"
+        className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-xs text-text-secondary hover:text-text-primary transition-colors"
       >
         <ClipboardPaste className="w-3.5 h-3.5" />
         从剪贴板粘贴

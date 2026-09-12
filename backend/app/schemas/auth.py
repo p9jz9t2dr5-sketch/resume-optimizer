@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
 import uuid
@@ -15,6 +15,20 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class UpdateProfileRequest(BaseModel):
+    """Only the display name is editable; email is the login identity."""
+
+    display_name: str = Field(min_length=1, max_length=8)
+
+    @field_validator("display_name")
+    @classmethod
+    def _strip_and_check(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("昵称不能为空")
+        return value
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -24,6 +38,8 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     id: uuid.UUID
     email: str
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
     is_premium: bool
     created_at: datetime
 

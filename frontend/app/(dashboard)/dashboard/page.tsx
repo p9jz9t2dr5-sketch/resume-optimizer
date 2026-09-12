@@ -1,18 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
 import { useResumeStore } from "@/stores/resumeStore";
 import { useChatStore } from "@/stores/chatStore";
-import { FileText, MessageSquare, Clock, ArrowRight, Plus } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { FileText, MessageSquare, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { useToast } from "@/stores/toastStore";
+
+type ConfirmTarget =
+  | { type: "resume"; id: string; name: string }
+  | { type: "session"; id: string; title: string }
+  | null;
 
 export default function DashboardPage() {
   const router = useRouter();
+  const toast = useToast();
   const { user, stats, isAuthenticated, isLoading, fetchStats } = useAuthStore();
-  const { resumes, fetchResumes } = useResumeStore();
-  const { sessions, fetchSessions } = useChatStore();
+  const { resumes, fetchResumes, deleteResume } = useResumeStore();
+  const { sessions, fetchSessions, deleteSession } = useChatStore();
+  const [confirmTarget, setConfirmTarget] = useState<ConfirmTarget>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -25,6 +35,26 @@ export default function DashboardPage() {
       fetchSessions();
     }
   }, [isAuthenticated, isLoading]);
+
+  const doDelete = async () => {
+    if (!confirmTarget) return;
+    setIsDeleting(true);
+    try {
+      if (confirmTarget.type === "resume") {
+        await deleteResume(confirmTarget.id);
+        toast.success("简历记录已删除");
+      } else {
+        await deleteSession(confirmTarget.id);
+        toast.success("对话/面试记录已删除");
+      }
+      await fetchStats().catch(() => {});
+    } catch {
+      toast.error("删除失败，请重试");
+    } finally {
+      setIsDeleting(false);
+      setConfirmTarget(null);
+    }
+  };
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -79,12 +109,19 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {resumes.slice(0, 3).map((r) => (
-                <div key={r.id} className="glass-card p-3 flex items-center gap-3">
+                <div key={r.id} className="glass-card p-3 flex items-center gap-3 group">
                   <FileText className="w-5 h-5 text-accent-cyan flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{r.original_filename}</p>
                     <p className="text-xs text-text-muted">{r.version_name} · {new Date(r.created_at).toLocaleDateString("zh-CN")}</p>
                   </div>
+                  <button
+                    onClick={() => setConfirmTarget({ type: "resume", id: r.id, name: r.original_filename })}
+                    className="p-2 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+                    title="删除这条简历记录"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -110,22 +147,46 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-3">
               {recentSessions.map((s) => (
-                <Link
-                  key={s.id}
-                  href={`/chat/${s.id}`}
-                  className="glass-card p-3 flex items-center gap-3 hover:border-accent-purple/30 transition-all"
-                >
-                  <MessageSquare className="w-5 h-5 text-accent-blue flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{s.title}</p>
-                    <p className="text-xs text-text-muted">{s.message_count} 条消息 · {new Date(s.updated_at).toLocaleDateString("zh-CN")}</p>
-                  </div>
-                </Link>
+                <div key={s.id} className="glass-card p-3 flex items-center gap-3 group">
+                  <Link
+                    href={`/chat/${s.id}`}
+                    className="flex items-center gap-3 flex-1 min-w-0 hover:text-accent-cyan transition-colors"
+                  >
+                    <MessageSquare className="w-5 h-5 text-accent-blue flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{s.title}</p>
+                      <p className="text-xs text-text-muted">{s.message_count} 条消息 · {new Date(s.updated_at).toLocaleDateString("zh-CN")}</p>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={() => setConfirmTarget({ type: "session", id: s.id, title: s.title })}
+                    className="p-2 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+                    title="删除这条对话/面试记录"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* 删除确认弹窗 */}
+      <ConfirmDialog
+        open={confirmTarget !== null}
+        title={confirmTarget?.type === "resume" ? "删除简历记录" : "删除对话记录"}
+        message={
+          confirmTarget?.type === "resume"
+            ? `确定要删除简历记录「${confirmTarget.name}」吗？对应的上传文件与优化结果会一并删除，不可恢复。`
+            : confirmTarget
+              ? `确定要删除「${confirmTarget.title}」这条对话/面试记录吗？其中的消息会一并删除，不可恢复。`
+              : ""
+        }
+        loading={isDeleting}
+        onConfirm={doDelete}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }

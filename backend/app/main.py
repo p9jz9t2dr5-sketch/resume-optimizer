@@ -40,6 +40,28 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Same idempotent migration for the user profile columns added later
+    # (editable display name + uploaded avatar).
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                lambda sync_conn: sync_conn.execute(
+                    text("ALTER TABLE users ADD COLUMN display_name VARCHAR(100)")
+                )
+            )
+    except Exception:
+        pass
+
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                lambda sync_conn: sync_conn.execute(
+                    text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(1000)")
+                )
+            )
+    except Exception:
+        pass
+
     # Redis quota (no-op locally when REDIS_URL is empty)
     await quota_service.connect()
 

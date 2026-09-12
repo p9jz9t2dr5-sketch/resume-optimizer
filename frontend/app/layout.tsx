@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import Navbar from "@/components/layout/Navbar";
+import GlobalHeader from "@/components/layout/GlobalHeader";
 import ToastContainer from "@/components/ui/ToastContainer";
 
 export const metadata: Metadata = {
@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="zh-CN" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-bg-primary text-text-primary">
         <Providers>
-          <Navbar />
+          <GlobalHeader />
           <main className="flex-1">{children}</main>
           <ToastContainer />
         </Providers>

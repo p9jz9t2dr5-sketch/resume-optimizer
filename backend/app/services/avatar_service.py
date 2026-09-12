@@ -4,7 +4,7 @@ import os
 import uuid
 from typing import Optional
 
-from PIL import Image, ImageStat
+from PIL import Image, ImageOps, ImageStat
 
 from app.config import get_settings
 from app.services.llm_service import llm_service
@@ -236,3 +236,58 @@ async def extract_avatar(original_path: str) -> Optional[str]:
             except OSError:
                 pass
         return None
+
+
+# ---------------------------------------------------------------------------
+# User profile avatars (uploaded by the user from the header menu) — unlike
+# extract_avatar() above there is no LLM involved: the image is centre-cropped
+# to a square, downscaled and re-encoded as PNG.
+# ---------------------------------------------------------------------------
+
+USER_AVATAR_SIZE = 256
+
+
+def store_user_avatar(data: bytes) -> str:
+    """Normalise an uploaded profile picture and write it under UPLOAD_DIR.
+
+    Returns a stored relative path like './uploads/avatar_<uuid>.png', matching
+    the form used elsewhere so the frontend can prefix it with API_BASE.
+    Raises ValueError when the bytes are not a decodable image.
+    """
+    try:
+        img = Image.open(io.BytesIO(data))
+        img.load()
+    except Exception:
+        raise ValueError("无法识别该图片文件，请上传 PNG / JPG / WebP 格式")
+
+    img = ImageOps.exif_transpose(img)
+    img = img.convert("RGB")
+    img = ImageOps.fit(img, (USER_AVATAR_SIZE, USER_AVATAR_SIZE), Image.LANCZOS)
+
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    avatar_filename = f"avatar_{uuid.uuid4().hex}.png"
+    img.save(os.path.join(settings.UPLOAD_DIR, avatar_filename), "PNG", optimize=True)
+
+    return os.path.join(settings.UPLOAD_DIR, avatar_filename)
+
+
+def delete_stored_file(stored_url: Optional[str]) -> None:
+    """Best-effort removal of a file we previously stored under UPLOAD_DIR.
+
+    Only the basename is honoured, so a tampered value in the DB can never
+    delete anything outside the upload directory.
+    """
+    if not stored_url:
+        return
+    filename = os.path.basename(stored_url.replace("\\", "/"))
+    if not filename:
+        return
+    path = os.path.normpath(os.path.join(settings.UPLOAD_DIR, filename))
+    root = os.path.normpath(settings.UPLOAD_DIR)
+    if os.path.dirname(path) != root:
+        return
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+    except OSError:
+        pass

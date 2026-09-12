@@ -1,9 +1,12 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, type CSSProperties } from "react";
+
+export type ResumeTextVariant = "classic" | "modern" | "minimal";
 
 interface ResumeTemplateProps {
   text: string;
+  variant?: ResumeTextVariant;
 }
 
 // Common Chinese resume section headings (best-effort detection).
@@ -56,9 +59,93 @@ const isSectionHeading = (line: string): boolean => {
   return false;
 };
 
+interface VariantStyle {
+  header: CSSProperties;
+  headerTitle: CSSProperties;
+  section: CSSProperties;
+  sectionText: string;
+}
+
+const VARIANT_STYLES: Record<ResumeTextVariant, VariantStyle> = {
+  classic: {
+    header: {
+      borderBottom: "2px solid #0f172a",
+      paddingBottom: "16px",
+      marginBottom: "24px",
+      textAlign: "center",
+    },
+    headerTitle: {
+      fontSize: "28px",
+      fontWeight: 700,
+      letterSpacing: "0.15em",
+      color: "#0f172a",
+      margin: 0,
+    },
+    section: {
+      fontSize: "17px",
+      fontWeight: 700,
+      color: "#0f172a",
+      margin: "16px 0 6px",
+      borderLeft: "4px solid #7c3aed",
+      paddingLeft: "10px",
+    },
+    sectionText: "#334155",
+  },
+  modern: {
+    header: {
+      background: "linear-gradient(135deg, #1e293b, #0f3460 70%, #1e3a8a)",
+      borderRadius: "10px",
+      padding: "22px 26px",
+      marginBottom: "22px",
+      textAlign: "left",
+    },
+    headerTitle: {
+      fontSize: "26px",
+      fontWeight: 700,
+      letterSpacing: "0.12em",
+      color: "#ffffff",
+      margin: 0,
+    },
+    section: {
+      fontSize: "16px",
+      fontWeight: 700,
+      color: "#1e40af",
+      margin: "18px 0 8px",
+      paddingBottom: "4px",
+      borderBottom: "2px solid #2563eb",
+    },
+    sectionText: "#334155",
+  },
+  minimal: {
+    header: {
+      borderBottom: "1px solid #cbd5e1",
+      paddingBottom: "12px",
+      marginBottom: "22px",
+      textAlign: "left",
+    },
+    headerTitle: {
+      fontSize: "24px",
+      fontWeight: 600,
+      letterSpacing: "0.08em",
+      color: "#0f172a",
+      margin: 0,
+    },
+    section: {
+      fontSize: "15px",
+      fontWeight: 600,
+      color: "#0f172a",
+      margin: "14px 0 5px",
+      paddingBottom: "2px",
+      borderBottom: "1px solid #e2e8f0",
+    },
+    sectionText: "#475569",
+  },
+};
+
 export const ResumeTemplate = forwardRef<HTMLDivElement, ResumeTemplateProps>(
-  function ResumeTemplate({ text }, ref) {
+  function ResumeTemplate({ text, variant = "classic" }, ref) {
     const lines = text.split(/\r?\n/);
+    const style = VARIANT_STYLES[variant];
 
     return (
       <div
@@ -70,30 +157,13 @@ export const ResumeTemplate = forwardRef<HTMLDivElement, ResumeTemplateProps>(
           color: "#1e293b",
           fontFamily:
             '-apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif',
-          padding: "56px 60px",
+          padding: variant === "modern" ? "44px 52px" : "56px 60px",
           boxSizing: "border-box",
         }}
       >
         {/* Header */}
-        <div
-          style={{
-            borderBottom: "2px solid #0f172a",
-            paddingBottom: "16px",
-            marginBottom: "24px",
-            textAlign: "center",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: "28px",
-              fontWeight: 700,
-              letterSpacing: "0.15em",
-              color: "#0f172a",
-              margin: 0,
-            }}
-          >
-            个人简历
-          </h1>
+        <div style={style.header}>
+          <h1 style={style.headerTitle}>个人简历</h1>
         </div>
 
         {/* Body */}
@@ -105,23 +175,13 @@ export const ResumeTemplate = forwardRef<HTMLDivElement, ResumeTemplateProps>(
             }
             if (isSectionHeading(line)) {
               return (
-                <h2
-                  key={i}
-                  style={{
-                    fontSize: "17px",
-                    fontWeight: 700,
-                    color: "#0f172a",
-                    margin: "16px 0 6px",
-                    borderLeft: "4px solid #7c3aed",
-                    paddingLeft: "10px",
-                  }}
-                >
+                <h2 key={i} style={style.section}>
                   {t}
                 </h2>
               );
             }
             return (
-              <p key={i} style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+              <p key={i} style={{ margin: 0, whiteSpace: "pre-wrap", color: style.sectionText }}>
                 {line}
               </p>
             );

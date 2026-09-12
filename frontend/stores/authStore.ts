@@ -1,13 +1,6 @@
 import { create } from "zustand";
-import { authApi } from "@/lib/api";
+import { authApi, type UserProfile } from "@/lib/api";
 import { setToken, clearTokens, getToken } from "@/lib/auth";
-
-interface User {
-  id: string;
-  email: string;
-  is_premium: boolean;
-  created_at: string;
-}
 
 interface UserStats {
   resume_count: number;
@@ -18,7 +11,7 @@ interface UserStats {
 }
 
 interface AuthState {
-  user: User | null;
+  user: UserProfile | null;
   stats: UserStats | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -27,6 +20,9 @@ interface AuthState {
   logout: () => void;
   fetchUser: () => Promise<void>;
   fetchStats: () => Promise<void>;
+  updateProfile: (displayName: string) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>;
+  removeAvatar: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -60,11 +56,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     try {
       const user = await authApi.getMe();
-      set({ user: user as User, isAuthenticated: true, isLoading: false });
+      set({ user, isAuthenticated: true, isLoading: false });
     } catch {
       clearTokens();
       set({ isLoading: false, isAuthenticated: false });
     }
+  },
+
+  updateProfile: async (displayName) => {
+    const user = await authApi.updateProfile(displayName);
+    set({ user, isAuthenticated: true });
+  },
+
+  uploadAvatar: async (file) => {
+    const user = await authApi.uploadAvatar(file);
+    set({ user, isAuthenticated: true });
+  },
+
+  removeAvatar: async () => {
+    const user = await authApi.removeAvatar();
+    set({ user, isAuthenticated: true });
   },
 
   fetchStats: async () => {

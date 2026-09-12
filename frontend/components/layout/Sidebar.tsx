@@ -45,7 +45,7 @@ export default function Sidebar() {
               <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-accent-purple" : ""}`} />
               {!collapsed && <span>{item.label}</span>}
               {collapsed && (
-                <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-xs text-text-primary rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-xs text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                   {item.label}
                 </span>
               )}

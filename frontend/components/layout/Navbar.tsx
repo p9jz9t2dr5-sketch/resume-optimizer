@@ -2,20 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
-import { FileText, MessageSquare, Building2, LayoutDashboard, LogOut, Sparkles, Menu, X } from "lucide-react";
+import { FileText, MessageSquare, Building2, LayoutDashboard, Sparkles, Menu, X } from "lucide-react";
+import UserMenu from "@/components/user/UserMenu";
 
 export default function Navbar() {
-  const { user, isAuthenticated, logout } = useAuthStore();
-  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const handleLogout = () => {
-    setMobileOpen(false);
-    logout();
-    router.push("/");
-  };
 
   // Close the mobile menu whenever we navigate via a link
   const closeMobile = () => setMobileOpen(false);
@@ -26,8 +19,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group" onClick={closeMobile}>
-            <Sparkles className="w-6 h-6 text-accent-cyan group-hover:text-accent-purple transition-colors" />
-            <span className="text-lg font-bold text-gradient">
+            <Sparkles className="w-6 h-6 text-accent" />
+            <span className="text-lg font-bold text-text-primary tracking-tight">
               AI Resume Optimizer
             </span>
           </Link>
@@ -69,18 +62,7 @@ export default function Navbar() {
           {/* Right: Auth + mobile toggle */}
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-text-secondary hidden sm:block">
-                  {user?.email}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="btn-ghost flex items-center gap-1.5 text-sm py-2 px-3"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">退出</span>
-                </button>
-              </div>
+              <UserMenu />
             ) : (
               <div className="flex items-center gap-2">
                 <Link href="/login" className="btn-ghost text-sm py-2 px-4">

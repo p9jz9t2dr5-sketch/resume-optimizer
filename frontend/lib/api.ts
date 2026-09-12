@@ -2,6 +2,25 @@ import { getToken, getRefreshToken, setAccessToken, clearTokens } from "./auth";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  is_premium: boolean;
+  created_at: string;
+}
+
+/**
+ * Stored media paths look like "./uploads/avatar_x.png" and are served by the
+ * backend under /uploads, so they need API_BASE in front of them. In production
+ * API_BASE is "/api", which nginx rewrites to the backend.
+ */
+export function mediaUrl(path?: string | null): string | null {
+  if (!path) return null;
+  return `${API_BASE}${path.replace(/^\./, "").replace(/\\/g, "/")}`;
+}
+
 interface RequestOptions extends RequestInit {
   skipAuth?: boolean;
 }
@@ -108,7 +127,25 @@ export const authApi = {
       skipAuth: true,
     }),
 
-  getMe: () => request("/auth/me"),
+  getMe: () => request<UserProfile>("/auth/me"),
+
+  updateProfile: (displayName: string) =>
+    request<UserProfile>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify({ display_name: displayName }),
+    }),
+
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<UserProfile>("/auth/me/avatar", {
+      method: "POST",
+      body: formData,
+    });
+  },
+
+  removeAvatar: () =>
+    request<UserProfile>("/auth/me/avatar", { method: "DELETE" }),
 
   getStats: () => request<{
     resume_count: number;

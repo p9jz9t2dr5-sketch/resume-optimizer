@@ -1,24 +1,50 @@
 @import "tailwindcss";
 
-@theme inline {
-  --color-bg-primary: #0F172A;
-  --color-bg-secondary: #1E293B;
-  --color-bg-card: rgba(30, 41, 59, 0.8);
-  --color-accent-purple: #7C3AED;
-  --color-accent-blue: #3B82F6;
-  --color-accent-cyan: #22D3EE;
-  --color-accent-pink: #EC4899;
-  --color-text-primary: #F8FAFC;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted: #64748B;
-  --color-surface-glass: rgba(30, 41, 59, 0.6);
+/* ============================================================
+   Design tokens — the GLOBAL theme is dark (dashboard / app).
+   The landing page wraps itself in `.theme-landing`, which
+   overrides the same variables to a light palette. Tailwind v4
+   `@theme` emits var() references so descendant overrides apply.
+   ============================================================ */
+@theme {
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F8FAFC;
+  --color-bg-card: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+
+  --color-accent: #0D9488;
+  --color-accent-strong: #0F766E;
+  --color-accent-soft: rgba(13, 148, 136, 0.12);
+  --color-accent-ink: #FFFFFF;
+
+  --color-accent-purple: #0D9488;
+  --color-accent-blue: #0D9488;
+  --color-accent-cyan: #0D9488;
+  --color-accent-pink: #0D9488;
+
+  --color-success: #059669;
+  --color-warning: #B45309;
+  --color-danger: #DC2626;
+
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+
   --font-sans: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
 }
 
 :root {
-  --background: #0F172A;
-  --foreground: #F8FAFC;
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --accent: #0D9488;
+  --accent-strong: #0F766E;
+  --accent-soft: rgba(13, 148, 136, 0.12);
+  --accent-ink: #FFFFFF;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
 }
 
 body {
@@ -26,190 +52,212 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glass morphism utilities */
+.nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Surfaces — solid with hairline borders (dark).
+   ============================================================ */
 .glass {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+  background: #FFFFFF;
+  border: 1px solid var(--border);
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
-  border-radius: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
 }
 
 .glass-input {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.6);
-  border-radius: 0.75rem;
-  color: #F8FAFC;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--foreground);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .glass-input:focus {
   outline: none;
-  border-color: #7C3AED;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.16);
 }
 
 .glass-input::placeholder {
-  color: #64748B;
+  color: #94A3B8;
 }
 
-/* Gradient button */
+/* Buttons — solid accent, tactile */
 .btn-gradient {
-  background: linear-gradient(135deg, #7C3AED, #3B82F6);
-  color: white;
+  background: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
-  border-radius: 0.75rem;
+  border-radius: 12px;
   padding: 0.75rem 2rem;
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease, transform 0.12s ease;
   border: none;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
 }
-
 .btn-gradient:hover {
-  box-shadow: 0 0 24px rgba(124, 58, 237, 0.4);
+  background: var(--accent-strong);
   transform: translateY(-1px);
 }
-
 .btn-gradient:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.99);
+}
+.btn-gradient:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-ghost {
   background: transparent;
-  color: #94A3B8;
-  border: 1px solid rgba(51, 65, 85, 0.5);
-  border-radius: 0.75rem;
+  color: #475569;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   padding: 0.75rem 1.5rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
   cursor: pointer;
 }
-
 .btn-ghost:hover {
-  border-color: #7C3AED;
-  color: #F8FAFC;
-  background: rgba(124, 58, 237, 0.1);
+  border-color: var(--accent);
+  color: var(--color-text-primary);
+  background: var(--accent-soft);
 }
 
-/* Gradient text */
 .text-gradient {
-  background: linear-gradient(135deg, #7C3AED, #22D3EE);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background: none;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: currentColor;
+  background-clip: initial;
+  color: var(--accent);
 }
 
-/* AI message gradient border */
 .ai-border {
   position: relative;
-  border-radius: 1rem;
-  background: rgba(30, 41, 59, 0.8);
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .ai-border::before {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 1rem;
-  padding: 1px;
-  background: linear-gradient(135deg, #7C3AED, #3B82F6, #22D3EE);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  border-radius: 14px;
+  border: 1px solid rgba(13, 148, 136, 0.35);
   pointer-events: none;
 }
 
-/* Glow effect */
-.glow-purple {
-  box-shadow: 0 0 40px rgba(124, 58, 237, 0.15), 0 0 80px rgba(124, 58, 237, 0.05);
-}
-
+.glow-purple,
 .glow-cyan {
-  box-shadow: 0 0 40px rgba(34, 211, 238, 0.15), 0 0 80px rgba(34, 211, 238, 0.05);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
-/* Dual-line border for upload zone */
 .upload-zone {
-  border: 2px dashed rgba(51, 65, 85, 0.6);
-  border-radius: 1rem;
-  transition: all 0.3s ease;
-  background: rgba(30, 41, 59, 0.3);
+  border: 2px dashed var(--border-strong);
+  border-radius: 14px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  background: rgba(248, 250, 252, 0.6);
 }
-
 .upload-zone:hover {
-  border-color: #7C3AED;
-  background: rgba(124, 58, 237, 0.05);
-  box-shadow: 0 0 30px rgba(124, 58, 237, 0.1);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
-  border-radius: 3px;
+  background: #CBD5E1;
+  border-radius: 999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.8);
+  background: #94A3B8;
 }
 
-/* Animations */
+/* Motion */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.2); }
-  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.4); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* SSE streaming cursor */
-.streaming-cursor::after {
-  content: '▋';
-  animation: blink 1s step-end infinite;
-  color: #22D3EE;
-}
-
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
 
-/* Markdown rendering for AI assistant replies */
+/* Landing hero — floating swatches, brand bloom, dot grid */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-delayed 5s ease-in-out infinite;
+  animation-delay: 1s;
+}
+.hero-dot-grid {
+  background-image: radial-gradient(circle, rgba(100, 116, 139, 0.32) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@keyframes demo-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes demo-typing-dot {
+  0%, 20%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+@keyframes demo-progress {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+.animate-pulse-glow {
+  animation: none;
+}
+.streaming-cursor::after {
+  content: '▋';
+  animation: blink 1s step-end infinite;
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Markdown rendering for AI replies (dark) */
 .markdown-body {
   font-size: 0.875rem;
   line-height: 1.7;
-  color: #E2E8F0;
+  color: #334155;
   word-break: break-word;
 }
 .markdown-body > :first-child { margin-top: 0; }
@@ -219,7 +267,7 @@ body {
 .markdown-body h3,
 .markdown-body h4 {
   font-weight: 600;
-  color: #F8FAFC;
+  color: #0F172A;
   line-height: 1.35;
   margin: 0.9em 0 0.4em;
 }
@@ -236,20 +284,20 @@ body {
 .markdown-body ul { list-style: disc; }
 .markdown-body ol { list-style: decimal; }
 .markdown-body li { margin: 0.25em 0; }
-.markdown-body li::marker { color: #22D3EE; }
-.markdown-body strong { color: #F8FAFC; font-weight: 600; }
-.markdown-body em { color: #CBD5E1; }
+.markdown-body li::marker { color: var(--accent); }
+.markdown-body strong { color: #0F172A; font-weight: 600; }
+.markdown-body em { color: #475569; }
 .markdown-body code {
-  background: rgba(15, 23, 42, 0.7);
+  background: #F1F5F9;
   padding: 0.1em 0.4em;
   border-radius: 0.3em;
   font-family: var(--font-mono);
   font-size: 0.85em;
-  color: #22D3EE;
+  color: var(--accent);
 }
 .markdown-body pre {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+  background: #F1F5F9;
+  border: 1px solid var(--border);
   border-radius: 0.6rem;
   padding: 0.75rem 1rem;
   overflow-x: auto;
@@ -258,21 +306,21 @@ body {
 .markdown-body pre code {
   background: transparent;
   padding: 0;
-  color: #E2E8F0;
+  color: #0F172A;
 }
 .markdown-body blockquote {
-  border-left: 3px solid #7C3AED;
+  border-left: 3px solid var(--accent);
   padding-left: 0.8em;
-  color: #94A3B8;
+  color: #475569;
   margin: 0.6em 0;
 }
 .markdown-body a {
-  color: #22D3EE;
+  color: var(--accent);
   text-decoration: underline;
 }
 .markdown-body hr {
   border: none;
-  border-top: 1px solid rgba(51, 65, 85, 0.5);
+  border-top: 1px solid var(--border);
   margin: 1em 0;
 }
 .markdown-body table {
@@ -283,12 +331,112 @@ body {
 }
 .markdown-body th,
 .markdown-body td {
-  border: 1px solid rgba(51, 65, 85, 0.6);
+  border: 1px solid var(--border);
   padding: 0.4em 0.6em;
   text-align: left;
 }
 .markdown-body th {
-  background: rgba(30, 41, 59, 0.6);
-  color: #F8FAFC;
+  background: #F8FAFC;
+  color: #0F172A;
   font-weight: 600;
+}
+
+/* ============================================================
+   Scoped light theme — the landing page wraps itself in this.
+   All `--color-*` and bare palette vars flip to a light palette,
+   and a few hardcoded-colour component classes get light variants.
+   ============================================================ */
+.theme-landing {
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F8FAFC;
+  --color-bg-card: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+
+  --color-accent: #0D9488;
+  --color-accent-strong: #0F766E;
+  --color-accent-soft: rgba(13, 148, 136, 0.12);
+  --color-accent-ink: #FFFFFF;
+  --color-accent-purple: #0D9488;
+  --color-accent-blue: #0D9488;
+  --color-accent-cyan: #0D9488;
+  --color-accent-pink: #0D9488;
+
+  --color-success: #059669;
+  --color-warning: #B45309;
+  --color-danger: #DC2626;
+
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --accent: #0D9488;
+  --accent-strong: #0F766E;
+  --accent-soft: rgba(13, 148, 136, 0.12);
+  --accent-ink: #FFFFFF;
+  --surface: #FFFFFF;
+  --border: #E2E8F0;
+}
+
+/* Light variants for hardcoded-colour component classes */
+.theme-landing .btn-gradient:hover {
+  background: var(--accent-strong);
+}
+.theme-landing .btn-ghost {
+  color: #475569;
+}
+.theme-landing .btn-ghost:hover {
+  color: var(--color-text-primary);
+  background: var(--accent-soft);
+}
+.theme-landing .glass-input {
+  background: #FFFFFF;
+}
+.theme-landing .glass-input:focus {
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.16);
+}
+.theme-landing .glass-input::placeholder {
+  color: #94A3B8;
+}
+.theme-landing .upper-margin-card {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.theme-landing .upload-zone {
+  background: rgba(248, 250, 252, 0.6);
+}
+.theme-landing .upload-zone:hover {
+  background: var(--accent-soft);
+}
+.theme-landing .hero-dot-grid {
+  background-image: radial-gradient(circle, rgba(100, 116, 139, 0.32) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.theme-landing .ai-border::before {
+  border: 1px solid rgba(13, 148, 136, 0.35);
+}
+.theme-landing .markdown-body {
+  color: #334155;
+}
+.theme-landing .markdown-body h1,
+.theme-landing .markdown-body h2,
+.theme-landing .markdown-body h3,
+.theme-landing .markdown-body h4,
+.theme-landing .markdown-body strong {
+  color: #0F172A;
+}
+.theme-landing .markdown-body em { color: #475569; }
+.theme-landing .markdown-body code {
+  background: #F1F5F9;
+}
+.theme-landing .markdown-body pre {
+  background: #F1F5F9;
+}
+.theme-landing .markdown-body pre code { color: #0F172A; }
+.theme-landing .markdown-body blockquote { color: #475569; }
+.theme-landing .markdown-body th {
+  background: #F8FAFC;
+  color: #0F172A;
 }
