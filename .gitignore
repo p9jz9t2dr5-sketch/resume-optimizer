@@ -9,9 +9,13 @@ backend/.env.local
 # 依赖
 node_modules/
 .venv/
+.venv-broken-*/
 venv/
 __pycache__/
 *.pyc
+
+# 仓库根目录误生成的 lockfile（前端依赖在 frontend/package-lock.json）
+/package-lock.json
 
 # Next.js 构建产物
 .next/
