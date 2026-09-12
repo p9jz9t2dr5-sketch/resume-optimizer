@@ -8,6 +8,18 @@
 
 ---
 
+## 界面预览
+
+以下截图取自线上演示环境（Edge 无头浏览器实拍，非设计稿）：
+
+| 落地页 | 功能特色（含模拟面试） | 控制面板 |
+|---|---|---|
+| ![落地页](docs/screenshots/01-landing.png) | ![功能特色](docs/screenshots/02-features.png) | ![控制面板](docs/screenshots/04-dashboard.png) |
+
+| AI 模拟面试（面试官逐轮追问） | 公司库 | 编辑资料（头像 / 昵称 / 注销） |
+|---|---|---|
+| ![模拟面试](docs/screenshots/05-interview.png) | ![公司库](docs/screenshots/06-companies.png) | ![编辑资料](docs/screenshots/07-profile-dialog.png) |
+
 ## 核心功能
 
 | 功能 | 说明 |
