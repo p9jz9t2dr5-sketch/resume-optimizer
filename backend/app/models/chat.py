@@ -1,3 +1,5 @@
+"""chat_sessions / messages 表：模拟面试的会话与消息。"""
+
 import uuid
 from datetime import datetime
 from sqlalchemy import String, Text, DateTime, ForeignKey, Integer, func, Enum as SAEnum, Uuid

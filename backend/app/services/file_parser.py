@@ -1,3 +1,11 @@
+"""文件解析：按扩展名校验并提取正文。
+
+- PDF → pypdf
+- DOCX → python-docx
+- TXT → 直接读取
+- 图片 → 交给 llm_service 的 Qwen-VL OCR
+"""
+
 import os
 from typing import Optional
 from pypdf import PdfReader

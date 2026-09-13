@@ -1,3 +1,20 @@
+"""简历相关路由（挂载前缀 /resumes，最终路径 /api/resumes/*）。
+
+| 方法 | 路径 | 说明 | 需要登录 |
+|------|------|------|----------|
+| POST | /upload | 上传简历（PDF / DOCX / TXT / 图片），解析正文、脱敏、结构化 | 是 |
+| GET | / | 我的简历列表 | 是 |
+| DELETE | / | 清空全部简历（含磁盘文件） | 是 |
+| GET | /{resume_id} | 单份简历详情 | 是 |
+| DELETE | /{resume_id} | 删除单份简历（含磁盘文件） | 是 |
+| POST | /{resume_id}/parse | 重新做一次结构化解析 | 是 |
+| POST | /{resume_id}/polish | 按目标 JD 生成「简历优化建议」，SSE 流式 | 是 |
+| GET | /{resume_id}/export | 导出优化后的文本（.txt 下载） | 是 |
+
+关于隐私：content 保存含真实 PII 的原文（预览/导出用），anonymized_text 保存脱敏副本，
+调用模型时优先使用 content（模型侧不落库），对外分享/展示用脱敏文本。
+"""
+
 import json
 import os
 import uuid

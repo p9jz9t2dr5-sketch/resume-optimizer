@@ -1,3 +1,5 @@
+"""公司库的响应模型。"""
+
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime

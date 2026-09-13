@@ -1,3 +1,5 @@
+"""模拟面试服务：会话增删查、组装上下文、流式调用模型并把问答写入数据库。"""
+
 import logging
 import uuid
 from typing import AsyncGenerator

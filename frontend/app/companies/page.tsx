@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * 路由：/companies
+ *
+ * 公司库：浏览内置的 50+ 家公司及常见岗位，点击岗位会带着生成的 JD 草稿跳回工作台。
+ */
+
 import { useState, useCallback, useEffect } from "react";
 import { companyApi } from "@/lib/api";
 import SearchBar from "@/components/company/SearchBar";

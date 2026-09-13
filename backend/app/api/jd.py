@@ -1,3 +1,10 @@
+"""职位描述（JD）路由（挂载前缀 /jd，最终路径 /api/jd/*）。
+
+| 方法 | 路径 | 说明 | 需要登录 |
+|------|------|------|----------|
+| POST | /parse | 把 JD 解析成结构化要求，并与指定简历做匹配度分析（评分 / 命中与缺失关键词 / 改进建议） | 是 |
+"""
+
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession

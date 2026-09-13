@@ -1,3 +1,7 @@
+/**
+ * 404 页面：任何未匹配到路由的地址都会渲染这里（无需单独配置 URL）。
+ */
+
 import Link from "next/link";
 import { FileQuestion } from "lucide-react";
 

@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * 路由：/resumes（(dashboard) 路由组，不出现在 URL 里）
+ *
+ * 简历管理：列表、设为当前、纯文本预览（ResumeTextPreview）、下载 .txt、
+ * 删除单份或清空全部。
+ */
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";

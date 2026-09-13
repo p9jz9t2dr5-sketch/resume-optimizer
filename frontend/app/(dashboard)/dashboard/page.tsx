@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * 路由：/dashboard（(dashboard) 路由组，不出现在 URL 里）
+ *
+ * 控制面板：三张统计卡（简历版本 / 模拟面试 / 今日消息与每日额度）、最近简历、
+ * 最近面试记录，以及删除记录时的二次确认。
+ */
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

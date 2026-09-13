@@ -1,3 +1,5 @@
+"""账号相关的请求/响应模型：注册、登录、改昵称、用户信息、用量统计。"""
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime

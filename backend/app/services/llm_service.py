@@ -1,3 +1,9 @@
+"""模型调用层：把 DeepSeek（OpenAI 兼容协议）与 Qwen-VL（百炼 DashScope）封装成几个方法，
+所有 prompt 也集中在这个文件里（JD 解析、简历解析、匹配分析、面试官对话、简历改写、图片 OCR）。
+
+上层（api / services）只调用方法名，不直接接触 SDK，换模型时只改这里。
+"""
+
 import base64
 import json
 import logging

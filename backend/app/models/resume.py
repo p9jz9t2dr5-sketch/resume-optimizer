@@ -1,3 +1,11 @@
+"""resumes 表：一份上传的简历。
+
+- content：含真实 PII 的原文（预览、导出、重新优化用）
+- anonymized_text：脱敏副本（隐私安全兜底）
+- parsed_data.structured：结构化简历（教育/工作/项目/技能），前端据它显示摘要
+- avatar_url：图片简历里裁剪出的证件照
+"""
+
 import uuid
 from datetime import datetime
 from sqlalchemy import String, Text, DateTime, ForeignKey, func, Uuid, JSON

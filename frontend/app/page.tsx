@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * 路由：/（落地页）
+ *
+ * 一个文件承担两件事：
+ * 1. 未登录访客看到的落地页（Hero、功能特色、公司风格说明、页脚）
+ * 2. 登录后的「工作台」锚点区（#tool）：上传简历 → 粘贴 JD → 匹配分析 → 优化建议 → 开始模拟面试
+ *
+ * 页面内的锚点：#features（功能特色）、#templates、#tool（工作台）。
+ */
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";

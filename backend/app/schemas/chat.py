@@ -1,3 +1,5 @@
+"""模拟面试的请求/响应模型：建会话、发消息、会话列表与消息列表。"""
+
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime

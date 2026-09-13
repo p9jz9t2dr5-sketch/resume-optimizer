@@ -1,3 +1,13 @@
+/**
+ * 前端唯一的接口调用层：所有后端请求都从这里发出（页面不直接 fetch）。
+ *
+ * - API_BASE：构建时由 NEXT_PUBLIC_API_URL 注入。生产是相对路径 "/api"（经 nginx 反代），
+ *   本地开发是 http://localhost:8000
+ * - request()：自动带上 JWT；遇到 401 会用 refresh token 换一次新 token 再重试；
+ *   把后端返回的 detail 文案直接抛成 Error，页面用它显示错误
+ * - 下面按后端路由分组：authApi / resumeApi / jdApi / companyApi / chatApi
+ */
+
 import { getToken, getRefreshToken, setAccessToken, clearTokens } from "./auth";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";

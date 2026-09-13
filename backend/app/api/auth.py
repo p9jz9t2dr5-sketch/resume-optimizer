@@ -1,3 +1,18 @@
+"""账号相关路由（在 app/main.py 里以 /auth 前缀挂载，最终路径 = /api/auth/*）。
+
+| 方法 | 路径 | 说明 | 需要登录 |
+|------|------|------|----------|
+| POST | /register | 注册新账号（密码 8–72 位） | 否 |
+| POST | /login | 登录，返回 access + refresh token；失败按 IP+邮箱限流 | 否 |
+| POST | /refresh | 用 refresh token 换一个新的 access token | 否 |
+| GET | /me | 当前登录用户信息 | 是 |
+| PATCH | /me | 修改昵称（1–8 字） | 是 |
+| POST | /me/avatar | 上传头像（服务端居中裁剪为 256×256 PNG） | 是 |
+| DELETE | /me/avatar | 删除头像 | 是 |
+| DELETE | /me | 注销账号：清空该用户全部数据与上传文件 | 是 |
+| GET | /me/stats | 简历数 / 面试会话数 / 今日消息用量与上限 | 是 |
+"""
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -1,3 +1,5 @@
+"""简历服务：落盘保存上传文件、解析正文、脱敏、结构化解析、回写优化结果、删除时清理文件。"""
+
 import os
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession

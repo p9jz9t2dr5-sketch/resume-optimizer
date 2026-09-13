@@ -1,3 +1,5 @@
+"""job_descriptions 表：用户提交过的职位描述（JD）及其结构化要求。"""
+
 import uuid
 from datetime import datetime
 from sqlalchemy import String, Text, DateTime, ForeignKey, func, Uuid, JSON

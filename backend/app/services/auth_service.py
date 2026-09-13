@@ -1,3 +1,5 @@
+"""账号服务：bcrypt 密码哈希与校验、JWT 的签发/刷新、注销账号时的数据清理。"""
+
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext

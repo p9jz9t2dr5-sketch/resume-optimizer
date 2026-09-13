@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * 路由：/login（(auth) 是路由组，只用于归类文件，不出现在 URL 里）
+ *
+ * 登录表单：调用 authStore.login → POST /auth/login，成功后跳转 /dashboard。
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

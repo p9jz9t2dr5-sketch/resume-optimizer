@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * 路由：/chat/[sessionId]（动态路由，(dashboard) 路由组不出现在 URL 里）
+ *
+ * 一场模拟面试的对话界面：左侧简历预览，右侧消息流；
+ * 发消息走 POST /chat/{id}/message 的 SSE 流式接口，逐字显示面试官的下一句。
+ */
+
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";

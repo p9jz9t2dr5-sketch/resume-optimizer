@@ -1,3 +1,13 @@
+"""公司库路由（挂载前缀 /companies，最终路径 /api/companies/*）。
+
+| 方法 | 路径 | 说明 | 需要登录 |
+|------|------|------|----------|
+| GET | / | 公司列表（分页） | 否 |
+| GET | /search | 按关键词搜索公司（返回常见岗位，可用于生成 JD 草稿） | 否 |
+
+数据来源：backend/app/seed_data.py，首次启动时自动写入 50+ 家公司。
+"""
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func

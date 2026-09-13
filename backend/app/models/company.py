@@ -1,3 +1,5 @@
+"""companies 表：公司库（首次启动由 app/seed_data.py 写入 50+ 家互联网公司）。"""
+
 from sqlalchemy import String, Text, JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base

@@ -1,3 +1,5 @@
+"""users 表：账号信息（邮箱、bcrypt 密码哈希、昵称、头像、会员标记与注册时间）。"""
+
 import uuid
 from datetime import datetime
 from sqlalchemy import String, Boolean, DateTime, func, Uuid

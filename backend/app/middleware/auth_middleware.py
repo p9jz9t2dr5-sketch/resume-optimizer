@@ -1,3 +1,10 @@
+"""JWT 鉴权依赖。
+
+从 Authorization: Bearer <token> 解析出用户；在需要登录的接口签名里写
+`current_user: User = Depends(get_current_user)` 即可拿到当前用户。
+token 缺失/过期/伪造统一返回 401。
+"""
+
 import logging
 import uuid
 

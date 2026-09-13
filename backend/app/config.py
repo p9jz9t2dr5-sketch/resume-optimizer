@@ -1,3 +1,14 @@
+"""应用配置：所有可调项都来自环境变量或 .env 文件（见 app/config.py 顶部的 _ENV_FILE）。
+
+读哪个文件由 APP_ENV 决定：
+
+- APP_ENV=local → backend/.env.local（本地开发：SQLite，可不配 Redis）
+- 其他         → backend/.env（docker-compose 使用：Postgres + Redis）
+
+真实环境变量的优先级高于 .env 文件，所以测试可以直接覆盖 DATABASE_URL / UPLOAD_DIR
+而不影响开发者的本地配置。
+"""
+
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache

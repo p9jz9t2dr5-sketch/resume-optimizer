@@ -1,3 +1,21 @@
+"""模拟面试（对话）路由（挂载前缀 /chat，最终路径 /api/chat/*）。
+
+这一组接口支撑的是「AI 模拟面试」：面试官围绕简历里的项目经历逐轮追问，
+而不是简历改写（改写见 /resumes/{id}/polish）。
+
+| 方法 | 路径 | 说明 | 需要登录 |
+|------|------|------|----------|
+| POST | /start | 新建面试会话，并让模型生成面试官开场白（失败不影响会话创建） | 是 |
+| GET | /sessions | 我的面试记录列表 | 是 |
+| DELETE | /sessions | 清空全部面试记录 | 是 |
+| DELETE | /{session_id} | 删除单场面试（连同消息） | 是 |
+| GET | /{session_id}/messages | 某场面试的消息列表 | 是 |
+| POST | /{session_id}/message | 发送回答，SSE 流式返回面试官的下一句；先预占免费额度 | 是 |
+
+注意：/message 走 StreamingResponse，所以它刻意不注入请求级 db 会话
+（FastAPI 会在生成器开始迭代前就关掉它），入库由 chat_service 自己开短会话完成。
+"""
+
 import json
 import logging
 import uuid

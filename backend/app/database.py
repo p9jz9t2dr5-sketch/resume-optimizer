@@ -1,3 +1,12 @@
+"""数据库引擎与会话工厂。
+
+按 DATABASE_URL 自动走两个分支：
+- SQLite（本地开发）：额外设置 busy_timeout，避免并发写报 "database is locked"
+- Postgres（Docker 部署）：使用连接池
+
+get_db() 是 FastAPI 的请求级依赖：请求正常结束自动 commit，抛异常则 rollback。
+"""
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import event

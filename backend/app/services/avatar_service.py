@@ -1,3 +1,9 @@
+"""头像服务，两条路径都用它：
+
+1. extract_avatar()：从「图片简历」里用 Qwen-VL 定位人脸并裁剪成头像（best-effort，失败返回 None）
+2. store_user_avatar()：用户自己在「编辑资料」里上传的头像，居中裁剪为 256×256 PNG
+"""
+
 import base64
 import io
 import os

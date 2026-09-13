@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * 路由：/chat（(dashboard) 路由组，不出现在 URL 里）
+ *
+ * 模拟面试的入口与记录列表：上传简历即可开一场新面试（后端会先生成面试官开场白），
+ * 下方是历史面试记录，可逐条删除或全部清空。
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

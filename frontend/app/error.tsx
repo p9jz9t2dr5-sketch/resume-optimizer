@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 路由级错误边界：某个页面在渲染或请求中抛错时由它接管（替代 Next 默认的英文报错页），
+ * 提供「重试」（重新渲染该路由）与「回到首页」两个出口，并把错误打到控制台/容器日志。
+ */
+
 import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RotateCcw } from "lucide-react";

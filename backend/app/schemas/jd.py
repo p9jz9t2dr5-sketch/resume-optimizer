@@ -1,3 +1,8 @@
+"""JD 与匹配报告的请求/响应模型。
+
+这里的校验器承担「对模型输出容错」的职责：评分被模型写成 87.5 或 "92" 也能正常解析/取整。
+"""
+
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime

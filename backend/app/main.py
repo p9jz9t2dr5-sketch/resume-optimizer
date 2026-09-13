@@ -1,3 +1,21 @@
+"""应用入口：创建 FastAPI 实例、挂载路由与静态目录、启动时连接 Redis 并写入种子数据。
+
+路由前缀一览（公网访问时 nginx 会把 /api 前缀剥掉再转给后端）：
+
+| 前缀 | 来源文件 | 负责什么 |
+|------|----------|----------|
+| /auth | app/api/auth.py | 账号、资料（头像/昵称）、注销 |
+| /resumes | app/api/resumes.py | 简历上传解析、优化建议（SSE） |
+| /jd | app/api/jd.py | JD 解析与匹配度分析 |
+| /chat | app/api/chat.py | 模拟面试（SSE） |
+| /companies | app/api/companies.py | 公司库 |
+| /uploads | StaticFiles | 上传的简历原文件与头像 |
+| /health | 本文件 | 健康检查（容器 healthcheck 探的就是它） |
+
+数据库结构由 Alembic 迁移负责（compose 启动前执行 alembic upgrade head），
+本文件不再建表。
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

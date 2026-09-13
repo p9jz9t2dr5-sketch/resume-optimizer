@@ -1,3 +1,5 @@
+"""简历相关的请求/响应模型：上传结果、简历列表、结构化数据、优化建议请求。"""
+
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime

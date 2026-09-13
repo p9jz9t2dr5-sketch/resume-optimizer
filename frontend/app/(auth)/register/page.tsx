@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * 路由：/register（(auth) 路由组，不出现在 URL 里）
+ *
+ * 注册表单：前端先校验两次密码一致且不少于 8 位（与后端 RegisterRequest 的规则保持一致），
+ * 再调用 POST /auth/register，成功后自动登录并跳转 /dashboard。
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

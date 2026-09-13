@@ -1,3 +1,8 @@
+/**
+ * 根布局：注入全局样式、全局导航（GlobalHeader，首页会自行隐藏）、Toast 容器，
+ * 并挂载 TanStack Query 与鉴权初始化（Providers）。
+ */
+
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
