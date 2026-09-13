@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    # 默认分支（仓库之前用的是 master，已统一到 main）
+    branches: [main]
   pull_request:
 
 concurrency:
