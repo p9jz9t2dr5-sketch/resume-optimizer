@@ -1,3 +1,7 @@
+/**
+ * 全局提示（toast）：任何地方调用 useToast().success("...") 即可弹出一条，
+ * 由 layout 里的 ToastContainer 统一渲染，最多同时显示 5 条。
+ */
 import { create } from "zustand";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -10,9 +14,9 @@ export interface Toast {
 }
 
 interface ToastState {
-  toasts: Toast[];
-  addToast: (message: string, type?: ToastType) => void;
-  removeToast: (id: string) => void;
+  toasts: Toast[]; // 当前显示中的提示
+  addToast: (message: string, type?: ToastType) => void; // 新增一条（默认 info）
+  removeToast: (id: string) => void; // 手动关闭或超时后移除
 }
 
 let counter = 0;

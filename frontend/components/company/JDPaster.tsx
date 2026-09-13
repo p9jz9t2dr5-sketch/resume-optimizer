@@ -1,5 +1,7 @@
 "use client";
 
+/** JD 粘贴区：多行输入 + 解析按钮，触发 /jd/parse 做匹配分析。 */
+
 import { ClipboardPaste } from "lucide-react";
 
 interface JDPasterProps {

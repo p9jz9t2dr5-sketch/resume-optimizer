@@ -1,5 +1,7 @@
 "use client";
 
+/** 面试对话气泡：区分面试官（左）与候选人（右），并支持流式输出的光标。 */
+
 import { Bot, User } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import MarkdownText from "@/components/MarkdownText";

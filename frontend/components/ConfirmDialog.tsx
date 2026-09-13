@@ -1,5 +1,7 @@
 "use client";
 
+/** 通用二次确认弹窗：删除简历、清空记录等不可逆操作都用它。 */
+
 import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface ConfirmDialogProps {

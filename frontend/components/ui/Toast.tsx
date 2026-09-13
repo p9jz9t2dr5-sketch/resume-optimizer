@@ -1,5 +1,7 @@
 "use client";
 
+/** 单条全局提示的样式（success / error / info / warning 四种配色）。 */
+
 import { useEffect, useState, useCallback } from "react";
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from "lucide-react";
 import type { Toast as ToastItem } from "@/stores/toastStore";

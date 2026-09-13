@@ -55,4 +55,5 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".png", ".jpg", ".jpeg", 
 
 
 def allowed_file(filename: str) -> bool:
+    """扩展名是否在白名单里（PDF / DOCX / DOC / TXT / PNG / JPG / JPEG / WEBP）。"""
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS

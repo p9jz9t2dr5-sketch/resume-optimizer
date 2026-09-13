@@ -1,5 +1,7 @@
 "use client";
 
+/** 落地页顶部导航：下滚后加毛玻璃背景；已登录时右上角换成 UserMenu（头像 + 下拉菜单）。 */
+
 import { useState, useEffect } from "react";
 import { Sparkles, Menu, X } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";

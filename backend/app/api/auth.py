@@ -67,6 +67,12 @@ def _client_key(http_request: Request) -> str:
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    """注册新账号。
+
+    入参：email + password（8–72 位，越界由 RegisterRequest 直接返回 422）
+    返回：201 + 用户信息（id / email / 昵称 / 头像，不含密码哈希）
+    异常：邮箱已注册 → 409
+    """
     try:
         user = await register_user(db, request.email, request.password)
         return user
@@ -80,6 +86,13 @@ async def login(
     http_request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    """登录并签发 JWT。
+
+    入参：email + password
+    返回：access token + refresh token（后续请求用 `Authorization: Bearer <access>`）
+    异常：账号或密码错误统一返回 401（不透露邮箱是否存在）；
+          同一「客户端 IP + 邮箱」15 分钟内失败 5 次后返回 429，登录成功即清零。
+    """
     identifier = f"{_client_key(http_request)}:{request.email.lower()}"
 
     if await login_throttle.is_blocked(identifier):
@@ -105,6 +118,7 @@ async def login(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
+    """返回当前登录用户的信息（前端启动时调用它判断登录状态）。"""
     return current_user
 
 
@@ -141,7 +155,12 @@ async def update_me(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update the editable part of the profile (display name)."""
+    """修改昵称。
+
+    入参：display_name（1–8 字，前后空格会被去掉）
+    返回：更新后的用户信息
+    异常：空字符串或超过 8 字 → 422
+    """
     current_user.display_name = request.display_name
     await db.commit()
     await db.refresh(current_user)
@@ -154,7 +173,14 @@ async def upload_my_avatar(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Replace the user's avatar with an uploaded image (PNG / JPG / WebP)."""
+    """上传 / 替换头像。
+
+    入参：multipart 文件（仅 PNG / JPG / WebP，≤5MB）
+    处理：用 Pillow 居中裁剪成 256×256 并统一存为 PNG；旧头像文件在新头像
+          写库成功之后才删除，避免事务失败导致图片先没了
+    返回：更新后的用户信息（含新的 avatar_url）
+    异常：类型不支持 / 文件为空 / 超过 5MB / 不是合法图片 → 400
+    """
     if file.content_type not in ALLOWED_AVATAR_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -190,7 +216,7 @@ async def delete_my_avatar(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove the avatar so the UI falls back to the initial letter."""
+    """删除头像：清空字段并删除磁盘文件，前端会退回显示「昵称首字」的圆形头像。"""
     previous = current_user.avatar_url
     current_user.avatar_url = None
     await db.commit()
@@ -201,7 +227,12 @@ async def delete_my_avatar(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(request: RefreshRequest):
-    """Exchange a valid refresh token for a new access token (refresh token reused)."""
+    """用 refresh token 换一个新的 access token。
+
+    入参：refresh_token
+    返回：新的 access_token（refresh_token 原样返回，不做轮换）
+    异常：token 过期 / 伪造 / 类型不对 → 401
+    """
     try:
         access_token = refresh_access_token(request.refresh_token)
     except ValueError as e:
@@ -218,6 +249,11 @@ async def get_user_stats(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """控制面板顶部三张统计卡的数据来源。
+
+    返回：简历数、面试会话数、今日已用消息数与上限（会员上限为 999999）
+    说明：今日用量来自 quota_service（Redis 计数；未配置 Redis 时退化为进程内计数）。
+    """
     from sqlalchemy import select, func
     from app.models.resume import Resume
     from app.models.chat import ChatSession, Message

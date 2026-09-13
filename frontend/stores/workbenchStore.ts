@@ -1,3 +1,9 @@
+/**
+ * 工作台的中间态（Zustand，持久化到 localStorage）。
+ *
+ * 保存「粘贴的 JD、JD 解析结果、匹配报告、优化建议正文」；这样用户切到别的页面
+ * 再回来（或刷新）时，之前的分析结果还在，不用重新跑一遍模型。
+ */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 

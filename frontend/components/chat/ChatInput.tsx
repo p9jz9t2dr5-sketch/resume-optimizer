@@ -1,5 +1,7 @@
 "use client";
 
+/** 面试输入框：回车发送；流式回复期间禁用，避免并发提问打乱上下文。 */
+
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { Send, Loader2 } from "lucide-react";
 

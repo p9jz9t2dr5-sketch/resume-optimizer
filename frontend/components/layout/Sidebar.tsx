@@ -1,5 +1,7 @@
 "use client";
 
+/** 控制台侧边栏导航（宽屏显示，窄屏由导航栏折叠菜单替代）。 */
+
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

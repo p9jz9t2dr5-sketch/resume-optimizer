@@ -1,5 +1,7 @@
 "use client";
 
+/** 公司库搜索框（/companies 页使用）。 */
+
 import { useState, useEffect } from "react";
 import { Search, Loader2 } from "lucide-react";
 

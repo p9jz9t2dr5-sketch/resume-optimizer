@@ -1,5 +1,7 @@
 "use client";
 
+/** 提示容器：挂在根布局右下角，负责渲染与超时移除（最多同时 5 条）。 */
+
 import { useToastStore } from "@/stores/toastStore";
 import ToastItem from "./Toast";
 

@@ -1,5 +1,7 @@
 "use client";
 
+/** 简历上传区：拖拽或点选文件（PDF / DOCX / TXT / 图片），上传成功后自动解析并设为当前简历。 */
+
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { useResumeStore, type Resume } from "@/stores/resumeStore";

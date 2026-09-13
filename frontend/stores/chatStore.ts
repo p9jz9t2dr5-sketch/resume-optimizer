@@ -1,3 +1,10 @@
+/**
+ * 模拟面试的状态（Zustand）。
+ *
+ * 保存面试记录列表、当前会话的消息，以及流式回复的中间态：
+ * 发消息时 sendMessage 会一边读 SSE 一边把增量写进 streamingContent，
+ * 结束后再把完整消息追加到 messages，因此界面上能看到逐字输出。
+ */
 import { create } from "zustand";
 import { chatApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
@@ -22,12 +29,12 @@ interface ChatSession {
 }
 
 interface ChatState {
-  sessions: ChatSession[];
-  currentSessionId: string | null;
-  messages: Message[];
-  isStreaming: boolean;
-  streamingContent: string;
-  error: string | null;
+  sessions: ChatSession[]; // 我的面试记录（/chat 列表页）
+  currentSessionId: string | null; // 正在浏览的会话
+  messages: Message[]; // 当前会话的完整消息
+  isStreaming: boolean; // 是否正在接收 SSE 回复（用于禁用输入框/显示光标）
+  streamingContent: string; // 流式回复的已接收部分
+  error: string | null; // 失败信息（会话页顶部会显示）
 
   fetchSessions: () => Promise<void>;
   startSession: (resumeId: string, jdText: string, title?: string) => Promise<string>;

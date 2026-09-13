@@ -1,5 +1,7 @@
 "use client";
 
+/** 登录后的顶部导航（除落地页外的页面）：控制面板 / 简历管理 / 公司库 / 模拟面试 + 头像菜单。 */
+
 import { useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";

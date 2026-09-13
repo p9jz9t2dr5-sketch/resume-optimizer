@@ -57,6 +57,13 @@ async def upload_resume(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """上传并解析简历。
+
+    入参：multipart 文件（PDF / DOCX / TXT / PNG / JPG / WEBP）+ 可选版本名
+    处理：落盘 → 提取正文 → PII 脱敏 →（图片简历）用 Qwen-VL 裁出证件照 → 结构化解析
+    返回：201 + 简历记录（正文、脱敏文本、parsed_data、头像 URL）
+    异常：类型不支持 → 400；解析失败 → 500
+    """
     try:
         resume = await upload_and_parse_resume(db, current_user.id, file, version_name)
         resume.avatar_url = _resolve_avatar_url(resume.avatar_url)
@@ -75,6 +82,7 @@ async def list_resumes(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """我的简历列表（按创建时间倒序）；返回前会校验头像文件是否真的存在。"""
     resumes = await get_user_resumes(db, current_user.id)
     for r in resumes:
         r.avatar_url = _resolve_avatar_url(r.avatar_url)
@@ -89,7 +97,7 @@ async def clear_all_resumes(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete all of the user's resumes (and their upload files)."""
+    """清空我的全部简历，并删除磁盘上的原文件与裁剪头像，返回删除条数。"""
     deleted = await delete_all_resumes(db, current_user.id)
     return {"deleted": deleted}
 
@@ -100,7 +108,7 @@ async def delete_resume_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a single resume (and its upload file)."""
+    """删除单份简历及其磁盘文件；不存在或不属于当前用户时返回 404。"""
     ok = await delete_resume(db, uuid.UUID(resume_id), current_user.id)
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
@@ -113,6 +121,7 @@ async def get_resume(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """单份简历详情（正文、脱敏文本、结构化数据）；越权访问返回 404。"""
     import uuid
     resume = await get_resume_by_id(db, uuid.UUID(resume_id), current_user.id)
     if not resume:
@@ -122,7 +131,10 @@ async def get_resume(
 
 
 def _structured_to_text(st: dict) -> str:
-    """Render the optimized structured resume into a readable plain-text file."""
+    """把结构化简历排版成可读纯文本（导出 .txt 用）。
+
+    只做排版，不调用模型：基础信息 → 求职意向 → 教育 → 工作 → 项目 → 技能。
+    """
     lines: list[str] = []
     basic = st.get("basic_info") or {}
     if basic.get("name"):
@@ -223,7 +235,16 @@ async def polish_resume(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Stream an AI-polished resume tailored to a job description (SSE)."""
+    """生成「简历优化建议」——按目标 JD 逐段改写（SSE 流式）。
+
+    入参：jd_text（目标岗位描述）+ match_report（可选，来自 /jd/parse 的匹配结果）
+    返回：text/event-stream；正文是 Markdown 形式的优化建议报告，分片下发；在
+          `data: [DONE]` 之前还会补发一帧 `data: {"structured": {...}}`，前端据此
+          立刻刷新预览，省掉一次额外的 GET
+    说明：流结束后服务端会把优化结果重新解析成结构化数据写回该简历（写回失败
+          不影响已经下发给用户的建议正文）
+    异常：简历不存在 → 404；简历没有正文 → 400；未配置模型 Key → 503
+    """
     resume = await get_resume_by_id(db, uuid.UUID(resume_id), current_user.id)
     if not resume:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
@@ -300,7 +321,10 @@ async def parse_resume_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Parse resume into structured fields (education/work/projects/skills) via LLM and persist."""
+    """重新做一次结构化解析（教育 / 工作 / 项目 / 技能）并落库。
+
+    使用场景：旧数据没有 structured 字段，或首次上传时结构化解析失败，可手动重试。
+    """
     resume = await get_resume_by_id(db, uuid.UUID(resume_id), current_user.id)
     if not resume:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")

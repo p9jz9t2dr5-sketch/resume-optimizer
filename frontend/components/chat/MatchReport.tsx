@@ -1,5 +1,7 @@
 "use client";
 
+/** 匹配度报告卡片：评分、命中/缺失关键词、能力差距与改进建议（数据来自 POST /jd/parse）。 */
+
 import { CheckCircle, AlertTriangle, Lightbulb, XCircle } from "lucide-react";
 
 interface MatchReportProps {

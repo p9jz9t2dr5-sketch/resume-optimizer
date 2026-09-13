@@ -1,5 +1,7 @@
 "use client";
 
+/** 应用级 Provider：挂载 TanStack Query，并在启动时用本地 token 还原登录态。 */
+
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";

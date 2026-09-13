@@ -21,6 +21,7 @@ async def create_session(
     jd_text: str,
     title: str = "Resume Optimization",
 ) -> ChatSession:
+    """新建一场面试会话；简历不存在或不属于该用户时抛 ValueError（接口转 404）。"""
     # Verify resume belongs to user
     result = await db.execute(
         select(Resume).where(Resume.id == resume_id, Resume.user_id == user_id)
@@ -42,6 +43,7 @@ async def create_session(
 
 
 async def get_user_sessions(db: AsyncSession, user_id: uuid.UUID) -> list[dict]:
+    """取某个用户的面试记录（按更新时间倒序，含消息条数）。"""
     result = await db.execute(
         select(ChatSession)
         .where(ChatSession.user_id == user_id)
@@ -69,6 +71,7 @@ async def get_user_sessions(db: AsyncSession, user_id: uuid.UUID) -> list[dict]:
 
 
 async def get_session_messages(db: AsyncSession, session_id: uuid.UUID, user_id: uuid.UUID) -> list[Message]:
+    """取某场面试的全部消息（按时间正序）；会话不存在或不属于该用户时抛 ValueError。"""
     # Verify ownership
     result = await db.execute(
         select(ChatSession).where(ChatSession.id == session_id, ChatSession.user_id == user_id)

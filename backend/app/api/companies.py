@@ -26,6 +26,11 @@ async def search_companies(
     page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
+    """按关键词搜索公司（公开接口，无需登录）。
+
+    入参：q 关键词、page 页码、page_size（1–100）
+    返回：{companies, total, page, page_size}，每条含公司名、行业、官网与常见岗位。
+    """
     query = select(Company)
 
     # Dialect-agnostic case-insensitive match (works on both Postgres and SQLite)
@@ -57,6 +62,7 @@ async def list_companies(
     page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
+    """公司列表（公开接口，无需登录），按公司名升序分页返回。"""
     query = select(Company).order_by(Company.name.asc())
     count_query = select(func.count()).select_from(Company)
     total = await db.scalar(count_query) or 0

@@ -1,5 +1,7 @@
 "use client";
 
+/** Markdown 渲染：相比直接用 react-markdown，对中文简历/对话里的换行更友好。 */
+
 import React from "react";
 
 /**

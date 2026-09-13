@@ -152,6 +152,7 @@ AVATAR_BBOX_SYSTEM_PROMPT = """你是一个图像分析助手。请在一张简�
 
 class LLMService:
     def __init__(self):
+        """准备两个客户端：DeepSeek（对话 / 改写）与 DashScope（图片简历 OCR）。"""
         import httpx
         self.client = AsyncOpenAI(
             api_key=settings.OPENAI_API_KEY,
@@ -166,6 +167,7 @@ class LLMService:
         )
 
     def _get_model(self, is_premium: bool = False) -> str:
+        """按账号档位选模型：会员用 AI_PREMIUM_MODEL，免费用户用 AI_FAST_MODEL。"""
         return settings.AI_PREMIUM_MODEL if is_premium else settings.AI_FAST_MODEL
 
     async def parse_jd(self, raw_text: str, is_premium: bool = False) -> dict:

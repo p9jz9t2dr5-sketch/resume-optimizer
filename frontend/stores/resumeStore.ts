@@ -1,3 +1,10 @@
+/**
+ * 简历状态（Zustand，且 persist 到 localStorage）。
+ *
+ * 保存简历列表与「当前选中的简历」——后者是工作台的核心状态：上传、匹配、优化、
+ * 开面试都围绕它，因此持久化后在刷新或切换页面回来时不会丢。
+ * 注意 persist 用了 skipHydration，首屏由页面里的 rehydrate() 手动恢复，避免 SSR 不一致。
+ */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { resumeApi } from "@/lib/api";
@@ -15,10 +22,10 @@ export interface Resume {
 }
 
 interface ResumeState {
-  resumes: Resume[];
-  selectedResume: Resume | null;
+  resumes: Resume[]; // 我的全部简历
+  selectedResume: Resume | null; // 工作台当前使用的那一份（持久化）
   isLoading: boolean;
-  parsingIds: Set<string>;
+  parsingIds: Set<string>; // 正在做结构化解析的简历 id（用于显示转圈）
   uploadResume: (file: File, versionName?: string) => Promise<Resume>;
   fetchResumes: () => Promise<void>;
   selectResume: (resume: Resume | null) => void;

@@ -26,6 +26,15 @@ async def parse_jd(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """解析职位描述并与简历做匹配度分析。
+
+    入参：raw_text（JD 原文）+ 可选 resume_id（传了才会和简历对比）
+    返回：结构化要求 + 匹配报告（overall_score 评分、matched/missing 关键词、
+          skill_gaps 能力差距、suggestions 改进建议）
+    说明：模型输出并不稳定（评分可能是 87.5 或 "92"），由 app/schemas/jd.py
+          的校验器负责容错与取整。
+    异常：未配置模型 Key → 503
+    """
     # Parse JD with AI
     try:
         parsed = await llm_service.parse_jd(request.raw_text, current_user.is_premium)

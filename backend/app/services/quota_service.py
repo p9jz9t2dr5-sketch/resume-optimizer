@@ -22,16 +22,19 @@ settings = get_settings()
 
 class QuotaService:
     def __init__(self):
+        """初始化：Redis 客户端先置空，_memory 是 Redis 不可用时的兜底计数。"""
         self.redis: redis.Redis | None = None
         # Fallback counters keyed by the same daily key, used when Redis is absent.
         self._memory: dict[str, int] = {}
 
     async def connect(self):
+        """连接 Redis；未配置 REDIS_URL 时保持 None，后续自动走进程内计数。"""
         if not settings.REDIS_URL:
             return
         self.redis = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
     async def disconnect(self):
+        """关闭 Redis 连接（应用退出时调用）。"""
         if self.redis:
             try:
                 await self.redis.close()
@@ -40,10 +43,12 @@ class QuotaService:
             self.redis = None
 
     def _daily_key(self, user_id: str) -> str:
+        """当天的计数键：quota:daily:<user_id>:<YYYY-MM-DD>，天然按天滚动。"""
         today = date.today().isoformat()
         return f"quota:daily:{user_id}:{today}"
 
     async def get_daily_count(self, user_id: str) -> int:
+        """今天已用多少条（控制面板显示用）。"""
         if not self.redis:
             return self._memory.get(self._daily_key(user_id), 0)
         try:
@@ -55,6 +60,7 @@ class QuotaService:
             return self._memory.get(self._daily_key(user_id), 0)
 
     async def increment_daily(self, user_id: str) -> int:
+        """今日计数 +1 并返回新值（Redis 中同时设置 24 小时过期）。"""
         if not self.redis:
             return self._increment_memory(user_id)
         try:
@@ -95,17 +101,20 @@ class QuotaService:
         return count <= settings.FREE_DAILY_MESSAGE_LIMIT
 
     def _increment_memory(self, user_id: str) -> int:
+        """没有 Redis 时的兜底计数（进程内，多 worker 部署下各自独立）。"""
         key = self._daily_key(user_id)
         self._memory[key] = self._memory.get(key, 0) + 1
         return self._memory[key]
 
     async def can_send_message(self, user_id: str, is_premium: bool) -> bool:
+        """只判断不占用：现在还能不能发（会员恒为 True）。"""
         if is_premium:
             return True
         count = await self.get_daily_count(user_id)
         return count < settings.FREE_DAILY_MESSAGE_LIMIT
 
     async def remaining_messages(self, user_id: str, is_premium: bool) -> int:
+        """今日剩余条数（会员返回一个大数表示不限量）。"""
         if is_premium:
             return 999999  # effectively unlimited
         count = await self.get_daily_count(user_id)

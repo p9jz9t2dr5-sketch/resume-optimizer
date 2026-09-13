@@ -61,6 +61,14 @@ async def start_chat(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """新建一场模拟面试。
+
+    入参：resume_id（必填且必须属于当前用户）、jd_text（可空）、title
+    返回：201 + 会话信息（session_id / title / status）
+    说明：建完会话会调模型生成「面试官开场白」并作为第一条 assistant 消息落库；
+          这一步是 best-effort——模型不可用时照样返回会话，用户可以直接先开口。
+    异常：简历不存在或不属于当前用户 → 404
+    """
     try:
         session = await create_session(
             db, current_user.id, request.resume_id, request.jd_text or "", request.title
@@ -105,6 +113,7 @@ async def list_sessions(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """我的面试记录列表（按更新时间倒序，只返回当前用户的会话）。"""
     sessions = await get_user_sessions(db, current_user.id)
     return ChatSessionListResponse(
         sessions=[ChatSessionResponse(**s) for s in sessions],
@@ -117,7 +126,7 @@ async def clear_all_sessions(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete all of the user's interview sessions (and their messages)."""
+    """清空我的全部面试记录（连同消息），返回删除的条数。"""
     deleted = await delete_all_sessions(db, current_user.id)
     return {"deleted": deleted}
 
@@ -128,7 +137,7 @@ async def delete_chat_session(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Delete a single interview session (and its messages)."""
+    """删除单场面试（连同消息）；会话不属于当前用户时返回 404。"""
     ok = await delete_session(db, uuid.UUID(session_id), current_user.id)
     if not ok:
         raise HTTPException(
@@ -143,6 +152,7 @@ async def get_messages(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """某场面试的消息列表（按时间正序）；会话不属于当前用户时返回 404。"""
     try:
         messages = await get_session_messages(db, uuid.UUID(session_id), current_user.id)
         return [MessageResponse.model_validate(m) for m in messages]
@@ -156,6 +166,13 @@ async def send_message(
     request: ChatMessageRequest,
     current_user: User = Depends(get_current_user),
 ):
+    """发送一条回答，SSE 流式返回面试官的下一句。
+
+    入参：content（用户这次说的话）
+    返回：text/event-stream；正文帧 `data: {"content": "..."}`，结束帧 `data: [DONE]`，
+          出错帧 `data: {"error": "..."}`
+    说明：开始流式之前先原子预占一个免费额度（超额直接 429），模型报错则把额度退回。
+    """
     # NOTE: no `Depends(get_db)` here on purpose — this endpoint returns a
     # StreamingResponse, and the request-scoped session would be torn down before
     # the generator runs. stream_chat_response manages its own sessions.

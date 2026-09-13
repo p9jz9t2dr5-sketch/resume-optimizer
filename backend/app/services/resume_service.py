@@ -48,6 +48,7 @@ async def upload_and_parse_resume(
     file: UploadFile,
     version_name: str = "v1",
 ) -> Resume:
+    """上传流水线：落盘 → 提取正文 → PII 脱敏 →（图片简历）裁出证件照 → 结构化解析 → 建记录。"""
     if not allowed_file(file.filename):
         allowed = ", ".join(ext[1:] for ext in sorted(ALLOWED_EXTENSIONS))
         raise ValueError(f"Unsupported file type. Allowed: {allowed}")
@@ -112,6 +113,7 @@ async def upload_and_parse_resume(
 
 
 async def get_user_resumes(db: AsyncSession, user_id: uuid.UUID) -> list[Resume]:
+    """取某个用户的简历列表（按创建时间倒序）。"""
     result = await db.execute(
         select(Resume).where(Resume.user_id == user_id).order_by(Resume.created_at.desc())
     )
@@ -119,6 +121,7 @@ async def get_user_resumes(db: AsyncSession, user_id: uuid.UUID) -> list[Resume]
 
 
 async def get_resume_by_id(db: AsyncSession, resume_id: uuid.UUID, user_id: uuid.UUID) -> Resume | None:
+    """按 id + 归属用户查简历；不存在或不属于该用户时返回 None（越权一律当不存在）。"""
     result = await db.execute(
         select(Resume).where(Resume.id == resume_id, Resume.user_id == user_id)
     )

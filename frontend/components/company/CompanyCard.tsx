@@ -1,5 +1,7 @@
 "use client";
 
+/** 公司卡片：展示行业/官网/常见岗位；点击岗位会带着生成的 JD 草稿跳回工作台（/?jd=...#upload-section）。 */
+
 import { useRouter } from "next/navigation";
 import { ExternalLink, MapPin, Briefcase } from "lucide-react";
 

@@ -1,5 +1,7 @@
 "use client";
 
+/** 头像组件：有图显示图；没有图或图片加载失败时，回退显示昵称首字（中文取第一个字）。 */
+
 import { useState } from "react";
 import type { UserProfile } from "@/lib/api";
 

@@ -1,5 +1,7 @@
 "use client";
 
+/** 评分圆环：按分数区间换色（与 lib/utils 的 getMatchScoreColor 保持一致）。 */
+
 import { getMatchScoreColor } from "@/lib/utils";
 
 interface ScoreRingProps {
