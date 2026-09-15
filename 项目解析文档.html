@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>resume-optimizer · 项目解析文档</title>
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1e222e; --bd:#2a2f3c;
+    --tx:#e6e9ef; --mut:#9aa3b2; --acc:#5b8cff; --acc2:#f4b740;
+    --green:#4ade80; --red:#f87171; --code:#0b0d12;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.7;font-size:15px;}
+  a{color:var(--acc);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  code{font-family:"SFMono-Regular",Consolas,Menlo,monospace;background:var(--code);
+    padding:1px 6px;border-radius:5px;font-size:13px;color:#cdd6f4;}
+  pre{background:var(--code);padding:14px 16px;border-radius:10px;overflow:auto;border:1px solid var(--bd);}
+  pre code{background:none;padding:0;color:#cdd6f4;}
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;background:rgba(15,17,23,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);padding:10px 20px;
+    display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;}
+  nav .brand{color:var(--acc2);font-weight:700;margin-right:8px;}
+  nav a{color:var(--mut);}
+  nav a:hover{color:var(--tx);text-decoration:none;}
+  /* layout */
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 80px;}
+  header.hero{padding:36px 0 14px;border-bottom:1px solid var(--bd);margin-bottom:26px;}
+  header.hero h1{margin:0 0 8px;font-size:30px;letter-spacing:.3px;}
+  header.hero .sub{color:var(--mut);font-size:15px;max-width:760px;}
+  .tag{display:inline-block;background:var(--panel2);border:1px solid var(--bd);
+    color:var(--mut);border-radius:999px;padding:2px 11px;font-size:12px;margin:4px 4px 0 0;}
+  h2{margin:42px 0 14px;font-size:22px;border-left:4px solid var(--acc);padding-left:12px;}
+  h3{margin:26px 0 10px;font-size:17px;color:#cdd6f4;}
+  h4{margin:18px 0 6px;font-size:14px;color:var(--acc2);}
+  p{margin:8px 0;}
+  .panel{background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:18px 20px;margin:14px 0;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:14px 0;}
+  .card{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;}
+  .card b{color:#fff;}
+  .card .small{color:var(--mut);font-size:13px;margin-top:4px;}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--bd);vertical-align:top;}
+  th{background:var(--panel2);color:var(--mut);font-weight:600;}
+  tr:hover td{background:rgba(91,140,255,.05);}
+  .pill{display:inline-block;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600;}
+  .ok{background:rgba(74,222,128,.15);color:var(--green);}
+  .warn{background:rgba(248,113,113,.15);color:var(--red);}
+  .muted{color:var(--mut);}
+  .arch{display:flex;flex-direction:column;gap:10px;align-items:center;margin:18px 0;}
+  .layer{width:100%;max-width:760px;border:1px solid var(--bd);border-radius:10px;
+    background:var(--panel2);padding:12px 16px;text-align:center;}
+  .layer .lname{color:var(--acc2);font-weight:700;font-size:13px;margin-bottom:8px;}
+  .box{display:inline-block;background:var(--panel);border:1px solid var(--bd);border-radius:8px;
+    padding:6px 12px;margin:4px;font-size:13px;}
+  .arrow{color:var(--mut);font-size:18px;}
+  .tree{font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;color:#cdd6f4;line-height:1.55;}
+  .tree .dir{color:var(--acc);}
+  .tree .file{color:var(--tx);}
+  .callout{border-left:4px solid var(--acc2);background:rgba(244,183,64,.08);
+    padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0;}
+  .callout.red{border-color:var(--red);background:rgba(248,113,113,.08);}
+  footer{color:var(--mut);font-size:13px;text-align:center;margin-top:50px;
+    border-top:1px solid var(--bd);padding-top:20px;}
+  .kbd{font-family:monospace;background:var(--panel2);border:1px solid var(--bd);
+    border-radius:5px;padding:1px 6px;font-size:12px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="brand">📄 resume-optimizer</span>
+  <a href="#intro">简介</a>
+  <a href="#stack">技术栈</a>
+  <a href="#arch">架构</a>
+  <a href="#entry">核心入口</a>
+  <a href="#backend">后端模块</a>
+  <a href="#frontend">前端模块</a>
+  <a href="#flow">数据流</a>
+  <a href="#deploy">部署</a>
+  <a href="#pitfalls">踩坑实录</a>
+  <a href="#config">关键配置</a>
+</nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <h1>resume-optimizer 项目解析文档</h1>
+  <div class="sub">一个面向求职者的 AI 简历优化 + 对话式模拟面试平台。本文档从「项目做什么、核心入口在哪、各代码模块负责什么、开发踩过哪些坑」四个维度，对当前仓库（commit <code>b8b89c1</code>）做一次完整拆解。</div>
+  <div style="margin-top:10px">
+    <span class="tag">Next.js 16</span><span class="tag">FastAPI</span><span class="tag">PostgreSQL / SQLite</span>
+    <span class="tag">DeepSeek</span><span class="tag">Qwen-VL</span><span class="tag">Docker Compose</span>
+    <span class="tag">SSE 流式</span><span class="tag">移动端适配</span>
+  </div>
+</header>
+
+<!-- ============ 1. 简介 ============ -->
+<h2 id="intro">一、这个项目是做什么的</h2>
+<div class="panel">
+  <p><b>一句话定位：</b>用户输入「自己的简历」+「目标岗位的 JD（职位描述）」，AI 帮你做三件事——① 评估简历与岗位的匹配度并给改进建议；② 润色简历文案；③ 开启一场针对该岗位的对话式模拟面试。</p>
+  <p><b>目标用户：</b>正在求职、需要让简历更贴合目标岗位、并想在面试前做模拟训练的候选人。</p>
+  <h4>核心产品闭环（5 步）</h4>
+  <table>
+    <tr><th>步骤</th><th>用户动作</th><th>AI 做的事</th><th>技术实现</th></tr>
+    <tr><td>1. 注册 / 登录</td><td>邮箱 + 密码</td><td>签发 JWT，记录用户</td><td><code>auth_service</code> + bcrypt + JWT</td></tr>
+    <tr><td>2. 上传简历</td><td>传 PDF / Word / 图片</td><td>OCR / 解析成结构化文本</td><td><code>file_parser</code>（图片走 Qwen-VL）</td></tr>
+    <tr><td>3. 粘贴 JD</td><td>粘贴岗位描述</td><td>结构化抽取岗位要求</td><td><code>llm_service</code>（DeepSeek）</td></tr>
+    <tr><td>4. 匹配度分析</td><td>点「分析」</td><td>打匹配分 + 给出差距与建议</td><td><code>resume_service</code> + <code>llm_service.analyze_match</code></td></tr>
+    <tr><td>5. 模拟面试</td><td>开启对话</td><td>按岗位追问、点评回答</td><td><code>chat_service</code>（SSE 流式）</td></tr>
+  </table>
+  <div class="callout">产品边界已收敛：早期规划的「公司库」「面试助手」静态页已砍掉，当前只聚焦「对话式模拟面试」这一条主链路，保证每个功能都端到端可用。</div>
+</div>
+
+<!-- ============ 2. 技术栈 ============ -->
+<h2 id="stack">二、技术栈</h2>
+<div class="grid">
+  <div class="card"><b>前端</b><div class="small">Next.js 16（App Router）+ TypeScript + Tailwind CSS v4 + Zustand 状态管理</div></div>
+  <div class="card"><b>后端</b><div class="small">FastAPI + SQLAlchemy(async) + 异步 SQLite/PostgreSQL + Pydantic v2</div></div>
+  <div class="card"><b>AI · 文字</b><div class="small">DeepSeek（OpenAI 兼容接口，经 <code>OPENAI_API_KEY</code> 接入）</div></div>
+  <div class="card"><b>AI · 视觉</b><div class="small">通义千问 Qwen-VL（阿里云百炼，经 <code>DASHSCOPE_API_KEY</code> 做图片 OCR）</div></div>
+  <div class="card"><b>实时通信</b><div class="small">SSE（Server-Sent Events）流式输出模拟面试回复</div></div>
+  <div class="card"><b>部署</b><div class="small">Docker Compose 五服务 + nginx 反向代理；JWT 鉴权</div></div>
+</div>
+
+<!-- ============ 3. 架构 ============ -->
+<h2 id="arch">三、系统架构</h2>
+<p class="muted">请求从浏览器出发，经 nginx 单入口分发到前端（静态资源）或后端（API），后端再调用数据库、缓存与两家大模型。</p>
+<div class="arch">
+  <div class="layer">
+    <div class="lname">① 用户层 · 浏览器（桌面 / 移动端）</div>
+    <span class="box">Next.js 页面</span><span class="box">Zustand Stores</span><span class="box">SSE 流式接收</span>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="layer">
+    <div class="lname">② 接入层 · nginx（容器，单入口 :80）</div>
+    <span class="box">/ → frontend:3000</span><span class="box">/api/ → backend:8000（剥离前缀）</span>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="layer">
+    <div class="lname">③ 应用层</div>
+    <span class="box">frontend 容器 (Next.js)</span>
+    <span class="box">backend 容器 (FastAPI / Uvicorn)</span>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="layer">
+    <div class="lname">④ 存储与外部依赖</div>
+    <span class="box">PostgreSQL / SQLite</span>
+    <span class="box">Redis（每日配额）</span>
+    <span class="box">DeepSeek（文字）</span>
+    <span class="box">Qwen-VL / 百炼（图片 OCR）</span>
+  </div>
+</div>
+<div class="callout">关键设计：后端 API 统一加 <code>/api</code> 前缀，前端用相对路径调用，镜像可移植；nginx 负责剥离 <code>/api</code> 前缀再转发，对外只暴露 80 端口。</div>
+
+<!-- ============ 4. 核心入口 ============ -->
+<h2 id="entry">四、核心入口在哪里</h2>
+
+<h3>4.1 用户访问入口（前端）</h3>
+<table>
+  <tr><th>文件</th><th>角色</th></tr>
+  <tr><td><code>frontend/app/layout.tsx</code></td><td><b>根布局 / 全局外壳</b>。所有页面都被它包裹：挂载 <code>&lt;Providers&gt;</code>（Zustand）、顶部 <code>&lt;Navbar&gt;</code>、全局 Toast。已在此声明移动端 <code>viewport</code>（device-width）。</td></tr>
+  <tr><td><code>frontend/app/page.tsx</code></td><td><b>首页 / 功能入口</b>。落地页即工作区：上传简历 + 粘贴 JD + 一键匹配度分析，是用户使用产品的第一站。</td></tr>
+  <tr><td><code>frontend/app/(dashboard)/*</code></td><td>登录后的仪表盘、简历管理、模拟面试对话等受保护页面，由 <code>(dashboard)/layout.tsx</code> 统一包裹侧边栏。</td></tr>
+</table>
+
+<h3>4.2 后端 API 入口</h3>
+<table>
+  <tr><th>文件</th><th>角色</th></tr>
+  <tr><td><code>backend/app/main.py</code></td><td><b>FastAPI 应用入口</b>。创建 <code>app</code> 实例，启动时（lifespan）建表、做 SQLite 列迁移、连 Redis 配额、种子公司数据；挂载 5 个路由前缀；提供 <code>/health</code> 与 <code>/uploads</code> 静态目录。</td></tr>
+  <tr><td><code>backend/app/database.py</code></td><td><b>数据库引擎与会话</b>。根据 <code>DATABASE_URL</code> 选择异步 SQLite 或 PostgreSQL 引擎；导出 <code>Base</code>（ORM 基类）与 <code>get_db</code>（依赖注入）。</td></tr>
+</table>
+<div class="callout">程序如何启动：<code>docker-compose</code> 拉起 5 个容器，backend 容器执行 <code>uvicorn app.main:app</code>。所有路由都挂在 <code>main.py</code> 的 <code>app</code> 上。</div>
+
+<!-- ============ 5. 后端模块 ============ -->
+<h2 id="backend">五、后端代码模块详解</h2>
+
+<h3>5.1 目录结构</h3>
+<pre class="tree"><span class="dir">backend/app/</span>
+├── <span class="file">main.py</span>            # FastAPI 入口：应用创建、路由挂载、生命周期
+├── <span class="file">database.py</span>        # 异步引擎、Session、Base
+├── <span class="file">config.py</span>          # 从 .env 读取配置（含各类 API Key）
+├── <span class="dir">models/</span>             # SQLAlchemy ORM 表定义
+│   ├── user.py  resume.py  company.py  job_description.py  chat.py
+├── <span class="dir">schemas/</span>           # Pydantic 请求/响应模型
+│   ├── auth.py  chat.py  company.py  jd.py  resume.py
+├── <span class="dir">api/</span>               # 路由层（HTTP 边界）
+│   ├── auth.py  resumes.py  companies.py  jd.py  chat.py
+├── <span class="dir">services/</span>          # 业务逻辑层（核心）
+│   ├── auth_service.py  resume_service.py  llm_service.py
+│   ├── file_parser.py  chat_service.py  avatar_service.py
+│   ├── anonymizer.py  quota_service.py
+├── <span class="dir">middleware/</span>
+│   └── auth_middleware.py  # JWT 鉴权
+└── seed_data.py          # 首次启动种子公司数据</pre>
+
+<h3>5.2 路由层（api/）—— 对外暴露的 HTTP 端点</h3>
+<table>
+  <tr><th>路由文件</th><th>前缀</th><th>主要端点</th><th>作用</th></tr>
+  <tr><td><code>auth.py</code></td><td><code>/auth</code></td><td><code>POST /register</code> <code>POST /login</code> <code>GET /me</code> <code>POST /refresh</code> <code>GET /me/stats</code></td><td>注册、登录、续期、用户统计</td></tr>
+  <tr><td><code>resumes.py</code></td><td><code>/resumes</code></td><td><code>POST /upload</code> <code>GET /</code> <code>DELETE /</code> <code>GET /{id}</code> <code>DELETE /{id}</code> <code>POST /{id}/parse</code> <code>POST /{id}/polish</code> <code>GET /{id}/export</code></td><td>简历上传/列表/删除/解析/润色/导出</td></tr>
+  <tr><td><code>jd.py</code></td><td><code>/jd</code></td><td><code>POST /parse</code></td><td>把 JD 文本结构化</td></tr>
+  <tr><td><code>companies.py</code></td><td><code>/companies</code></td><td><code>GET /search</code> <code>GET /</code></td><td>公司库检索（种子数据）</td></tr>
+  <tr><td><code>chat.py</code></td><td><code>/chat</code></td><td><code>POST /start</code> <code>GET /sessions</code> <code>DELETE /sessions</code> <code>DELETE /{id}</code> <code>GET /{id}/messages</code> <code>POST /{id}/message</code>（SSE）</td><td>模拟面试会话管理 + 流式问答</td></tr>
+</table>
+
+<h3>5.3 服务层（services/）—— 真正的业务逻辑</h3>
+<table>
+  <tr><th>模块</th><th>职责</th><th>关键函数 / 类</th></tr>
+  <tr><td><code>auth_service.py</code></td><td>账户与认证</td><td><code>register_user()</code>、<code>authenticate_user()</code>（bcrypt 校验，重复注册返回中文提示）</td></tr>
+  <tr><td><code>resume_service.py</code></td><td>简历业务编排</td><td><code>upload_and_parse_resume()</code>、<code>get_user_resumes()</code>、<code>update_resume_parsed_data()</code>、<code>delete_resume()</code>、批量删除</td></tr>
+  <tr><td><code>llm_service.py</code></td><td><b>双客户端 AI 核心</b></td><td><code>LLMService</code>：<br>· <code>client</code> 用 <code>OPENAI_API_KEY</code> → DeepSeek（文字：JD 解析、匹配度、润色、面试）<br>· <code>vision_client</code> 用 <code>DASHSCOPE_API_KEY</code> → Qwen-VL（图片 OCR）<br><code>_get_model()</code>、<code>analyze_match()</code></td></tr>
+  <tr><td><code>file_parser.py</code></td><td>文件解析</td><td><code>parse_file()</code>：PDF/Word 走文本抽取；图片走 <code>llm_service.parse_image</code>（Qwen-VL）</td></tr>
+  <tr><td><code>chat_service.py</code></td><td>模拟面试对话</td><td><code>create_session()</code>、<code>get_user_sessions()</code>、<code>stream_chat_response()</code>（SSE 流式）、<code>delete_session()</code> 等</td></tr>
+  <tr><td><code>avatar_service.py</code></td><td>头像截取（简历图片中抠出头像）</td><td><code>extract_avatar()</code>（依赖 Pillow）</td></tr>
+  <tr><td><code>anonymizer.py</code></td><td>敏感信息脱敏</td><td>匹配度分析前对简历做脱敏，保护隐私</td></tr>
+  <tr><td><code>quota_service.py</code></td><td>每日用量配额</td><td><code>QuotaService</code>：基于 Redis 的每日调用计数（<code>REDIS_URL</code> 为空时本地降级）</td></tr>
+</table>
+
+<h3>5.4 其他层</h3>
+<table>
+  <tr><th>层</th><th>文件</th><th>作用</th></tr>
+  <tr><td>配置</td><td><code>config.py</code></td><td>集中读取 <code>.env</code>：<code>DEEPSEEK_API_KEY</code>、<code>OPENAI_API_KEY</code>、<code>OPENAI_BASE_URL</code>、<code>DASHSCOPE_API_KEY</code>、<code>DATABASE_URL</code>、<code>CORS_ORIGINS</code>、<code>JWT_SECRET</code> 等</td></tr>
+  <tr><td>数据模型</td><td><code>models/*.py</code></td><td>5 张表：user / resume / company / job_description / chat（含消息）</td></tr>
+  <tr><td>校验模型</td><td><code>schemas/*.py</code></td><td>请求体与响应体的 Pydantic 定义，做输入校验与序列化</td></tr>
+  <tr><td>中间件</td><td><code>middleware/auth_middleware.py</code></td><td>校验 JWT，把当前用户注入请求上下文（受保护接口的前置关卡）</td></tr>
+  <tr><td>种子</td><td><code>seed_data.py</code> / <code>scripts/seed_companies.py</code></td><td>首次启动自动写入公司库示例数据</td></tr>
+</table>
+
+<!-- ============ 6. 前端模块 ============ -->
+<h2 id="frontend">六、前端代码模块详解</h2>
+
+<h3>6.1 目录结构</h3>
+<pre class="tree"><span class="dir">frontend/</span>
+├── <span class="dir">app/</span>
+│   ├── layout.tsx              # 根布局（Providers + Navbar + Toast + viewport）
+│   ├── page.tsx                # 首页工作区（上传 + JD + 匹配度）
+│   ├── <span class="dir">(auth)/</span>login | register
+│   ├── <span class="dir">(dashboard)/</span>dashboard | resumes | chat | chat/[sessionId] | layout
+│   └── companies/page.tsx
+├── <span class="dir">components/</span>
+│   ├── layout/Navbar.tsx  Sidebar.tsx
+│   ├── chat/ChatBubble  ChatInput  MatchReport  ScoreRing
+│   ├── company/CompanyCard  JDPaster  SearchBar
+│   ├── resume/ResumeUploader  ResumeTemplate  VisualResumeTemplate  ResumeExportModal
+│   ├── ui/Toast  ToastContainer
+│   ├── ConfirmDialog.tsx  MarkdownText.tsx  Providers.tsx
+├── <span class="dir">stores/</span>      # Zustand：authStore / chatStore / resumeStore / toastStore / workbenchStore
+└── <span class="dir">lib/</span>         # api.ts（API 封装）/ auth.ts / exportResume.ts / utils.ts</pre>
+
+<h3>6.2 关键模块说明</h3>
+<table>
+  <tr><th>模块</th><th>作用</th></tr>
+  <tr><td><code>stores/*</code></td><td>全局状态。authStore 管登录态/JWT；chatStore 管面试会话；resumeStore 管简历列表；toastStore 管提示；workbenchStore 管首页工作区状态</td></tr>
+  <tr><td><code>lib/api.ts</code></td><td>所有后端调用的统一封装，处理 <code>/api</code> 前缀、JWT 注入、SSE 流式读取</td></tr>
+  <tr><td><code>components/resume/ResumeUploader.tsx</code></td><td>简历上传组件（被首页复用，靠全局 token 渲染）</td></tr>
+  <tr><td><code>components/company/JDPaster.tsx</code></td><td>JD 粘贴输入（被首页复用）</td></tr>
+  <tr><td><code>components/chat/*</code></td><td>模拟面试对话 UI：气泡、输入框、匹配报告、分数环</td></tr>
+  <tr><td><code>components/layout/Navbar.tsx</code></td><td>顶部导航；移动端含汉堡菜单（md 以下展开下拉）</td></tr>
+  <tr><td><code>components/ConfirmDialog.tsx</code></td><td>自定义二次确认弹窗（取代了原生 <code>window.confirm</code>）</td></tr>
+</table>
+<div class="callout">设计约束：首页重做等视觉改动只动表现层、不改共享组件逻辑——<code>ResumeUploader</code>、<code>JDPaster</code>、<code>MatchReport</code>、<code>ScoreRing</code> 等靠全局 CSS token 渲染，改它们会波及整个后台，因此保持稳定。</div>
+
+<!-- ============ 7. 数据流 ============ -->
+<h2 id="flow">七、一次完整请求的数据流</h2>
+<h4>场景 A：简历匹配度分析</h4>
+<pre><code>浏览器(page.tsx)
+  → 上传简历 → POST /api/resumes/upload
+       backend resumes.py → resume_service.upload_and_parse_resume()
+         → file_parser.parse_file()  [图片→Qwen-VL / 文本→本地抽取]
+         → 写入 resumes 表
+  → 粘贴 JD → POST /api/jd/parse
+       backend jd.py → llm_service（DeepSeek）结构化 JD
+  → 点「分析」→ resume_service + llm_service.analyze_match()
+         → anonymizer 脱敏 → DeepSeek 计算匹配分 + 建议
+         → 返回分数 + 报告（前端 ScoreRing / MatchReport 渲染）</code></pre>
+
+<h4>场景 B：对话式模拟面试（SSE 流式）</h4>
+<pre><code>POST /api/chat/start            → chat_service.create_session() 建会话
+POST /api/chat/{id}/message     → chat_service.stream_chat_response()
+         → 读取简历 + JD 作为上下文
+         → 调 DeepSeek（SSE 逐 token 返回）
+         → 前端 chatStore 实时追加气泡，lib/api.ts 解析流</code></pre>
+
+<!-- ============ 8. 部署 ============ -->
+<h2 id="deploy">八、部署架构</h2>
+<p>通过 <code>docker-compose.yml</code> 编排 5 个服务（外加一个 <code>pgdata</code> 数据卷）：</p>
+<table>
+  <tr><th>服务</th><th>镜像 / 技术</th><th>职责</th></tr>
+  <tr><td><code>nginx</code></td><td>nginx:1.27-alpine</td><td>单入口 :80，<code>/</code> → frontend，<code>/api/</code> → backend（剥离前缀），关缓冲保 SSE</td></tr>
+  <tr><td><code>frontend</code></td><td>Next.js（自构建镜像）</td><td>编译并托管前端静态资源</td></tr>
+  <tr><td><code>backend</code></td><td>Python + FastAPI</td><td>API 与 AI 编排（注入了容器 DNS 配置）</td></tr>
+  <tr><td><code>db</code></td><td>postgres:15-alpine</td><td>关系型数据库（<code>pgdata</code> 持久化）</td></tr>
+  <tr><td><code>redis</code></td><td>redis:7-alpine</td><td>每日配额计数</td></tr>
+</table>
+<div class="callout">常用运维命令（在服务器项目目录执行）：<br>
+启动：<code>docker compose up -d</code>　|　停服：<code>docker compose stop</code><br>
+改了前端源码需重建：<code>docker compose up -d --build</code>　|　只改 <code>.env</code>：<code>docker compose restart backend</code></div>
+
+<!-- ============ 9. 踩坑实录 ============ -->
+<h2 id="pitfalls">九、开发部署踩坑实录</h2>
+<table>
+  <tr><th>#</th><th>问题</th><th>根因</th><th>解决</th></tr>
+  <tr><td>1</td><td>本机输命令看不到服务器系统</td><td>误把本机当服务器</td><td>确认是阿里云 ECS（Alibaba Linux 3 + 宝塔），用 Workbench/SSH 连接</td></tr>
+  <tr><td>2</td><td>git clone / ghproxy 超时</td><td>服务器无法直连 GitHub</td><td>本机下载 zip → 宝塔文件管理器上传解压</td></tr>
+  <tr><td>3</td><td>docker pull 失败</td><td>Docker Hub 被墙</td><td>配置 <code>/etc/docker/daemon.json</code> 国内镜像源</td></tr>
+  <tr><td>4</td><td>nginx 80 端口拒绝连接</td><td><code>nginx.conf</code> 漏写 <code>events{}</code>/<code>http{}</code> 包裹</td><td>补全结构并重写</td></tr>
+  <tr><td>5</td><td>backend 启动即崩（502）</td><td><code>avatar_service</code> 缺 Pillow</td><td><code>requirements.txt</code> 补 <code>Pillow</code> 重建</td></tr>
+  <tr><td>6</td><td>重复注册无友好提示</td><td>后端英文 409 + 前端 toast</td><td>改中文提示 + 页面内红色错误条（非 toast）</td></tr>
+  <tr><td>7</td><td>容器内 AI 调用 502/503</td><td>容器内 DNS 解析不了公网</td><td><code>docker-compose.yml</code> 给 backend 加 <code>dns: [223.5.5.5, 8.8.8.8]</code></td></tr>
+  <tr><td>8</td><td>匹配度分析失败</td><td><code>llm_service</code> 读 <code>OPENAI_API_KEY</code>（.env 为空），而非 <code>DEEPSEEK_API_KEY</code></td><td>把 DeepSeek key 赋值给 <code>OPENAI_API_KEY</code>（变量名陷阱）</td></tr>
+  <tr><td>9</td><td>「DeepSeek 没视觉，填它也没用？」</td><td>误以为图片分析也走 DeepSeek</td><td>实际图片 OCR 走独立 <code>vision_client</code>（Qwen-VL / 百炼），需另填 <code>DASHSCOPE_API_KEY</code></td></tr>
+  <tr><td>10</td><td>手机端页面是缩小版桌面</td><td>缺 viewport + Navbar 无汉堡菜单</td><td>加全局 viewport；Navbar 加移动端汉堡菜单；首页 Hero 按钮堆叠</td></tr>
+  <tr><td>11</td><td>本机推 GitHub 被墙</td><td>https 的 git 协议(443)被重置</td><td>改用 SSH（22 端口通），生成密钥并把公钥加入 GitHub 账户</td></tr>
+</table>
+
+<!-- ============ 10. 配置 ============ -->
+<h2 id="config">十、关键配置（.env 要填什么）</h2>
+<div class="panel">
+  <p class="muted"><code>.env</code> 已被 <code>.gitignore</code> 排除，不会进仓库。后端运行依赖以下变量：</p>
+  <table>
+    <tr><th>变量</th><th>用途</th><th>缺失后果</th></tr>
+    <tr><td><code>DEEPSEEK_API_KEY</code></td><td>DeepSeek 平台密钥（源）</td><td>—</td></tr>
+    <tr><td><code>OPENAI_API_KEY</code></td><td><b>实际被文字 AI 读取</b>，需 = DeepSeek key</td><td class="warn">文字链路 503/502</td></tr>
+    <tr><td><code>OPENAI_BASE_URL</code></td><td>默认 <code>https://api.deepseek.com/v1</code></td><td>连错端点</td></tr>
+    <tr><td><code>DASHSCOPE_API_KEY</code></td><td>百炼密钥，供 Qwen-VL 做图片 OCR</td><td class="warn">图片简历无法解析</td></tr>
+    <tr><td><code>DATABASE_URL</code></td><td>SQLite 或 PostgreSQL 连接串</td><td>无法建库</td></tr>
+    <tr><td><code>JWT_SECRET</code></td><td>签发/校验 JWT</td><td>登录失效</td></tr>
+    <tr><td><code>CORS_ORIGINS</code> / <code>REDIS_URL</code></td><td>跨域白名单 / 配额缓存</td><td>CORS 报错 / 配额降级本地</td></tr>
+  </table>
+  <div class="callout red">⚠️ 安全提醒：API Key 属于敏感凭证，切勿明文贴在聊天框或提交进仓库。本仓库已通过 <code>.gitignore</code> 排除 <code>.env</code>，部署时由服务器本地维护。</div>
+</div>
+
+<footer>
+  resume-optimizer · 项目解析文档 &nbsp;|&nbsp; 基于仓库 commit <code>b8b89c1</code> 生成 &nbsp;|&nbsp; 涵盖简介 / 技术栈 / 架构 / 核心入口 / 前后端模块 / 数据流 / 部署 / 踩坑 / 配置
+</footer>
+
+</div>
+</body>
+</html>
