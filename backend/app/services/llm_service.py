@@ -8,6 +8,7 @@ import base64
 import json
 import logging
 import os
+from dataclasses import dataclass, field
 from typing import AsyncGenerator, Optional
 from openai import AsyncOpenAI
 
@@ -150,6 +151,30 @@ AVATAR_BBOX_SYSTEM_PROMPT = """你是一个图像分析助手。请在一张简�
 """
 
 
+class ToolCallingUnsupported(RuntimeError):
+    """模型/供应商不接受 ``tools`` 参数时抛出。
+
+    Agent 循环依赖 function calling，但换模型（例如换成不支持工具的推理模型）
+    时不能直接 500 —— 上层捕获这个异常后回退到单次改写链路，功能降级但可用。
+    """
+
+
+@dataclass
+class LLMReply:
+    """一次模型调用的结构化结果（正文 + 工具调用 + 用量）。"""
+
+    content: str = ""
+    # [{"id": ..., "name": ..., "arguments": "<原始 JSON 字符串>"}]
+    tool_calls: list[dict] = field(default_factory=list)
+    finish_reason: str = "stop"
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
+
 class LLMService:
     def __init__(self):
         """准备两个客户端：DeepSeek（对话 / 改写）与 DashScope（图片简历 OCR）。"""
@@ -169,6 +194,95 @@ class LLMService:
     def _get_model(self, is_premium: bool = False) -> str:
         """按账号档位选模型：会员用 AI_PREMIUM_MODEL，免费用户用 AI_FAST_MODEL。"""
         return settings.AI_PREMIUM_MODEL if is_premium else settings.AI_FAST_MODEL
+
+    @staticmethod
+    def _read_reply(response) -> LLMReply:
+        """把 SDK 的响应对象拍平成 LLMReply（choices 可能为空，不能盲取下标）。"""
+        if not getattr(response, "choices", None):
+            return LLMReply()
+        choice = response.choices[0]
+        message = getattr(choice, "message", None)
+        usage = getattr(response, "usage", None)
+        tool_calls: list[dict] = []
+        for call in (getattr(message, "tool_calls", None) or []):
+            function = getattr(call, "function", None)
+            tool_calls.append({
+                "id": getattr(call, "id", None) or "",
+                "name": getattr(function, "name", "") or "",
+                "arguments": getattr(function, "arguments", "") or "",
+            })
+        return LLMReply(
+            content=(getattr(message, "content", None) or ""),
+            tool_calls=tool_calls,
+            finish_reason=getattr(choice, "finish_reason", None) or "stop",
+            prompt_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
+            completion_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
+        )
+
+    async def complete(
+        self,
+        messages: list[dict],
+        *,
+        is_premium: bool = False,
+        temperature: float = 0.3,
+        max_tokens: int = 2048,
+        response_format: dict | None = None,
+    ) -> LLMReply:
+        """通用的一次补全（非流式）：Agent 的规划、上下文压缩、兜底收尾都走这里。"""
+        kwargs: dict = {
+            "model": self._get_model(is_premium),
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            # 覆盖客户端默认的 10s 读超时：Agent 的收尾报告是长文本生成
+            "timeout": settings.AI_REQUEST_TIMEOUT_SECONDS,
+        }
+        if response_format:
+            kwargs["response_format"] = response_format
+        response = await self.client.chat.completions.create(**kwargs)
+        return self._read_reply(response)
+
+    async def complete_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        *,
+        is_premium: bool = False,
+        temperature: float = 0.3,
+        max_tokens: int = 4096,
+    ) -> LLMReply:
+        """带 function calling 的一次补全——Agent 执行循环的每一步都调它。
+
+        ``tool_choice="auto"``：由模型自己决定「继续调工具」还是「直接给答案」，
+        这也正是循环的终止条件（返回 tool_calls 就继续，返回纯文本就收尾）。
+        """
+        try:
+            response = await self.client.chat.completions.create(
+                model=self._get_model(is_premium),
+                messages=messages,
+                tools=tools,
+                tool_choice="auto",
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=settings.AI_REQUEST_TIMEOUT_SECONDS,
+            )
+        except Exception as exc:  # noqa: BLE001 — 需要按错误内容区分「不支持工具」
+            raise self._translate_tool_error(exc) from exc
+        return self._read_reply(response)
+
+    @staticmethod
+    def _translate_tool_error(exc: Exception) -> Exception:
+        """把「这个模型不支持 tools」识别出来，交给上层降级而不是报 500。"""
+        text = str(exc).lower()
+        mentions_tools = any(
+            token in text for token in ("tools", "tool_choice", "function call", "functions")
+        )
+        looks_like_bad_request = any(
+            token in text for token in ("400", "bad request", "invalid_request", "unsupported", "not support")
+        )
+        if mentions_tools and looks_like_bad_request:
+            return ToolCallingUnsupported(str(exc))
+        return exc
 
     async def parse_jd(self, raw_text: str, is_premium: bool = False) -> dict:
         """Parse a job description into structured requirements."""

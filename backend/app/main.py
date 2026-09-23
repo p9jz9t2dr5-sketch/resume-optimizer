@@ -22,8 +22,8 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from app.config import get_settings
 from app.database import async_session, engine
-from app.api import auth, resumes, companies, jd, chat
-from app.models import user, resume, company, job_description, chat as chat_model
+from app.api import auth, resumes, companies, jd, chat, agent
+from app.models import user, resume, company, job_description, chat as chat_model, agent as agent_model
 from app.services.quota_service import quota_service
 from app.services.login_throttle import login_throttle
 from app.seed_data import seed_companies
@@ -75,6 +75,7 @@ app.include_router(resumes.router, prefix="/resumes", tags=["Resumes"])
 app.include_router(companies.router, prefix="/companies", tags=["Companies"])
 app.include_router(jd.router, prefix="/jd", tags=["Job Descriptions"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
+app.include_router(agent.router, prefix="/agent", tags=["Agent"])
 
 # Static file serving for uploaded resume files (used as avatar / preview thumbnails)
 import os as _os

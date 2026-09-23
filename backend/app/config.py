@@ -39,6 +39,25 @@ class Settings(BaseSettings):
     DASHSCOPE_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     QWEN_VL_MODEL: str = "qwen-vl-max"
 
+    # —— Agent（规划 + 工具调用 + 记忆 + 轨迹）——
+    # 单次任务最多执行多少步（一步 = 一轮模型调用）。步数上限是防止
+    # 「工具调用死循环」把 token 烧穿的最后一道闸门。
+    AGENT_MAX_STEPS: int = 8
+    # 单个工具调用的超时（秒）。LLM 类工具内部还有自己的模型超时。
+    AGENT_TOOL_TIMEOUT_SECONDS: float = 60.0
+    # 同一个工具在一次任务里最多被调用几次，超过就回一条错误观察值让它换方案。
+    AGENT_MAX_SAME_TOOL_CALLS: int = 3
+    # 执行上下文超过这个估算 token 数就触发压缩（把早期观察值摘要成一段）。
+    AGENT_CONTEXT_TOKEN_BUDGET: int = 8000
+    # 长期记忆最多存多少条键值，防止 Agent 无限写入把记忆变成垃圾场。
+    AGENT_MAX_PREFERENCES: int = 20
+    # 关掉后 /agent/optimize 直接回退到旧的单次改写链路。
+    AGENT_ENABLED: bool = True
+    # 单次模型请求的超时（秒）。客户端默认的 10 秒读超时对 Agent 的收尾报告太短：
+    # 收尾要生成整篇 Markdown 报告，实测会超过 10 秒拿不到首字节，于是 3 次重试
+    # 全部超时、任务以「工具都跑成功了但报告是空的」结束。这里单独放开。
+    AI_REQUEST_TIMEOUT_SECONDS: float = 120.0
+
 
 @lru_cache()
 def get_settings() -> Settings:
