@@ -42,3 +42,6 @@ Thumbs.db
 
 # 测试产物
 backend/test_user.png
+
+# 压测/采样产物（scripts/bench_agent.py 的输出；数字写进 README，原始明细不入库）
+/backend/bench_agent.json
