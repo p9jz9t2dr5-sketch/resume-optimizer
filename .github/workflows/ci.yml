@@ -36,6 +36,11 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
+      # Agent 的确定性能力（版块切分 / 关键词匹配 / 知识库检索 / 数字幻觉检查）
+      # 单独跑一遍并卡阈值：测试套件里也有对应用例，这里额外输出指标便于记录趋势。
+      - name: Agent offline evals
+        run: python -m evals.run_evals
+
   frontend:
     name: Frontend lint & build
     runs-on: ubuntu-latest
