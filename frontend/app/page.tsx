@@ -18,11 +18,12 @@ import { useWorkbenchStore } from "@/stores/workbenchStore";
 import { useChatStore } from "@/stores/chatStore";
 import ResumeUploader from "@/components/resume/ResumeUploader";
 import ResumeTextPreview from "@/components/resume/ResumeTextPreview";
+import AgentTrace, { AgentModeSwitch } from "@/components/resume/AgentTrace";
 import JDPaster from "@/components/company/JDPaster";
 import MatchReport from "@/components/chat/MatchReport";
 import ScoreRing from "@/components/chat/ScoreRing";
 import LandingHeader from "@/components/landing/LandingHeader";
-import { jdApi, resumeApi } from "@/lib/api";
+import { jdApi, resumeApi, agentApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/utils";
 import { useToast } from "@/stores/toastStore";
 import { Sparkles, Upload, FileSearch, MessageSquare, AlertTriangle, Wand2, Copy, Check } from "lucide-react";
@@ -224,6 +225,12 @@ export default function HomePage() {
   const [isPolishing, setIsPolishing] = useState(false);
   const [polishCopied, setPolishCopied] = useState(false);
   const [previewResume, setPreviewResume] = useState<Resume | null>(null);
+  // Agent 模式：默认走「规划 → 工具调用 → 报告」的 Agent 链路，可切回单次改写。
+  // 轨迹事件只放在组件状态里（不持久化）：它描述的是这一次执行的中间过程，
+  // 刷新后应该重新跑，而不是把上一轮的步骤当成当前结果。
+  const [agentMode, setAgentMode] = useState(true);
+  const [agentEvents, setAgentEvents] = useState<any[]>([]);
+  const [agentRunId, setAgentRunId] = useState<string | null>(null);
 
   // Restore persisted resume selection + workbench (JD / analysis / polish) after
   // mount. Both stores use `skipHydration` so the first client render matches the
@@ -286,12 +293,49 @@ export default function HomePage() {
 
   const handlePolish = async () => {
     if (!selectedResume || !jdText.trim()) return;
+    const resumeId = selectedResume.id;
     setIsPolishing(true);
     setPolishedContent("");
     setError("");
+    setAgentEvents([]);
+    setAgentRunId(null);
+
+    // 两条链路共用的收尾：把优化后的结构化简历直接写进 store，让预览/导出
+    // 立刻反映改动，而不是依赖一次可能静默失败的 GET 回程。
+    const applyStructured = (structured: any) => {
+      if (structured) {
+        useResumeStore.getState().applyPolishedStructured(resumeId, structured);
+      }
+    };
 
     try {
-      const stream = resumeApi.polishStream(selectedResume.id, jdText, matchReport);
+      if (agentMode) {
+        // Agent 链路：先规划，再逐步调用工具，最后流式返回报告。
+        // content 帧是报告分片，累加进正文；其余事件交给轨迹面板渲染。
+        let agentStructured: any = null;
+        for await (const evt of agentApi.streamOptimize(resumeId, jdText, matchReport)) {
+          if (evt?.type === "run" && evt.run_id) {
+            setAgentRunId(evt.run_id);
+          }
+          if (evt?.type && evt.type !== "content") {
+            setAgentEvents((prev) => [...prev, evt]);
+          }
+          // 只有 content 帧是报告正文。thinking（模型过程说明）和 final（整篇报告，
+          // 与分片帧内容相同，方便一次性取用）都带 content 字段，不区分就会把正文
+          // 拼两遍、还会把过程说明混进报告开头。
+          if (typeof evt?.content === "string" && (evt.type === undefined || evt.type === "content")) {
+            setPolishedContent((prev: string) => (prev || "") + evt.content);
+          }
+          if (evt?.structured) {
+            agentStructured = evt.structured;
+          }
+        }
+        applyStructured(agentStructured);
+        await refreshResume(resumeId).catch(() => {});
+        return;
+      }
+
+      const stream = resumeApi.polishStream(resumeId, jdText, matchReport);
       let polishedStructured: any = null;
       let _evtCount = 0;
       for await (const evt of stream) {
@@ -311,14 +355,14 @@ export default function HomePage() {
       // NOTE: do NOT call setPreviewResume() here — that would auto-open the
       // preview modal (showing the original resume) and hide the polished text,
       // which is not what the user expects from "一键润色".
-      if (polishedStructured) {
-        useResumeStore.getState().applyPolishedStructured(selectedResume.id, polishedStructured);
-      }
+      applyStructured(polishedStructured);
       // Best-effort: also re-sync from the backend so a page reload keeps the
       // optimized version. Non-fatal if it fails.
-      await refreshResume(selectedResume.id).catch(() => {});
+      await refreshResume(resumeId).catch(() => {});
     } catch (e) {
-      toast.error(getErrorMessage(e, "润色失败，请重试"));
+      toast.error(
+        getErrorMessage(e, agentMode ? "Agent 优化失败，可关闭 Agent 模式后重试" : "润色失败，请重试")
+      );
     } finally {
       setIsPolishing(false);
     }
@@ -573,6 +617,13 @@ export default function HomePage() {
                 </>
               )}
             </button>
+            {/* Agent 模式的开关放在这里（而不是结果区）：用户在做分析之前就能看到并选择
+                优化方式，否则它要等结果面板出现才可见，等于藏起来了。 */}
+            <AgentModeSwitch
+              agentMode={agentMode}
+              onChange={setAgentMode}
+              disabled={isPolishing}
+            />
           </div>
 
           {/* Results */}
@@ -585,6 +636,14 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1 w-full min-w-0 space-y-6">
                     <MatchReport report={matchReport} />
+
+                    {(agentEvents.length > 0 || (isPolishing && agentMode)) && (
+                      <AgentTrace
+                        events={agentEvents}
+                        isRunning={isPolishing && agentMode}
+                        runId={agentRunId}
+                      />
+                    )}
 
                     {!polishedContent ? (
                       <div className="flex items-center gap-3 flex-wrap">
@@ -600,7 +659,7 @@ export default function HomePage() {
                           {isPolishing ? (
                             <>
                               <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-                              生成建议中...
+                              {agentMode ? "Agent 执行中..." : "生成建议中..."}
                             </>
                           ) : (
                             <>
@@ -609,6 +668,11 @@ export default function HomePage() {
                             </>
                           )}
                         </button>
+                        <AgentModeSwitch
+                          agentMode={agentMode}
+                          onChange={setAgentMode}
+                          disabled={isPolishing}
+                        />
                       </div>
                     ) : (
                       <div className="glass-card p-6">
@@ -677,6 +741,16 @@ export default function HomePage() {
                     </div>
                   )}
 
+                  {(agentEvents.length > 0 || (isPolishing && agentMode)) && (
+                    <div className="mt-6">
+                      <AgentTrace
+                        events={agentEvents}
+                        isRunning={isPolishing && agentMode}
+                        runId={agentRunId}
+                      />
+                    </div>
+                  )}
+
                   {!polishedContent && (
                     <div className="flex items-center gap-3 mt-6 flex-wrap">
                       <button onClick={handleStartChat} className="btn-gradient flex items-center gap-2">
@@ -691,7 +765,7 @@ export default function HomePage() {
                         {isPolishing ? (
                           <>
                             <span className="w-4 h-4 border-2 border-accent/30 border-t-accent rounded-full animate-spin" />
-                            生成建议中...
+                            {agentMode ? "Agent 执行中..." : "生成建议中..."}
                           </>
                         ) : (
                           <>
@@ -700,6 +774,11 @@ export default function HomePage() {
                           </>
                         )}
                       </button>
+                      <AgentModeSwitch
+                        agentMode={agentMode}
+                        onChange={setAgentMode}
+                        disabled={isPolishing}
+                      />
                     </div>
                   )}
 

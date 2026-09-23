@@ -5,7 +5,7 @@
  *   本地开发是 http://localhost:8000
  * - request()：自动带上 JWT；遇到 401 会用 refresh token 换一次新 token 再重试；
  *   把后端返回的 detail 文案直接抛成 Error，页面用它显示错误
- * - 下面按后端路由分组：authApi / resumeApi / jdApi / companyApi / chatApi
+ * - 下面按后端路由分组：authApi / resumeApi / jdApi / companyApi / chatApi / agentApi
  */
 
 import { getToken, getRefreshToken, setAccessToken, clearTokens } from "./auth";
@@ -276,6 +276,99 @@ export const resumeApi = {
       }
     }
   },
+};
+
+// Agent（规划 + 工具调用 + 记忆 + 执行轨迹）
+export const agentApi = {
+  /**
+   * 跑一次 Agent 简历优化任务（POST /agent/optimize，SSE）。
+   *
+   * 与 resumeApi.polishStream 的区别：这个接口先产出执行计划，再逐步调用工具
+   * （查版块 / 查关键词 / 检索知识库 / 打分 / 改写），最后流式返回报告。
+   * 逐帧 yield 原始事件，调用方按 type 自行消费：
+   * run / plan / step / tool_call / tool_result / replan / compaction / thinking /
+   * content（报告分片）/ structured（优化后的结构化简历）/ fallback / done / error。
+   */
+  streamOptimize: async function* (
+    resumeId: string,
+    jdText: string,
+    matchReport?: any,
+    maxSteps?: number
+  ) {
+    const token = getToken();
+    const response = await fetch(`${API_BASE}/agent/optimize`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        resume_id: resumeId,
+        jd_text: jdText,
+        match_report: matchReport,
+        max_steps: maxSteps,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(errorDetail(await response.json().catch(() => null), "Agent error"));
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error("No stream reader");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") return;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.error) throw new Error(parsed.error);
+            yield parsed;
+          } catch (e) {
+            if (e instanceof SyntaxError) continue;
+            throw e;
+          }
+        }
+      }
+    }
+  },
+
+  /** 我的 Agent 执行记录（不含轨迹明细）。 */
+  listRuns: (limit = 20) =>
+    request<{ runs: any[]; total: number }>(`/agent/runs?limit=${limit}`),
+
+  /** 一次任务的完整执行轨迹（规划 / 工具调用 / 压缩 / 收尾）。 */
+  getRun: (runId: string) => request<any>(`/agent/runs/${runId}`),
+
+  deleteRun: (runId: string) =>
+    request<{ deleted: boolean }>(`/agent/runs/${runId}`, { method: "DELETE" }),
+
+  /** 跨任务长期记忆（目标岗位、风格偏好、禁忌等）。 */
+  listPreferences: () =>
+    request<{ preferences: any[]; total: number; known_keys: Record<string, string> }>(
+      "/agent/preferences"
+    ),
+
+  setPreference: (key: string, value: string) =>
+    request<any>(`/agent/preferences/${key}`, {
+      method: "PUT",
+      body: JSON.stringify({ value }),
+    }),
+
+  deletePreference: (key: string) =>
+    request<{ deleted: boolean }>(`/agent/preferences/${key}`, { method: "DELETE" }),
 };
 
 // JD
