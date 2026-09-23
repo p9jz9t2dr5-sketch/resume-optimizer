@@ -20,10 +20,13 @@ const eslintConfig = defineConfig([
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
+    // 注意必须带 `**/` 前缀：只写 `.next/**` 在 ESLint 的 flat config 里匹配不到，
+    // 于是 `next dev` 生成 .next/dev/static/chunks/*.js 之后，`npm run lint`
+    // 会去检查这些编译产物，报出上百个假错误（实测 212 errors / 4107 warnings）。
+    "**/.next/**",
+    "**/out/**",
+    "**/build/**",
+    "**/next-env.d.ts",
   ]),
 ]);
 
