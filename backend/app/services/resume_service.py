@@ -9,6 +9,7 @@ from fastapi import UploadFile
 from app.config import get_settings
 from app.models.resume import Resume
 from app.models.chat import ChatSession
+from app.models.agent import AgentRun
 from app.services.file_parser import parse_file, allowed_file, ALLOWED_EXTENSIONS
 from app.services.anonymizer import anonymize_text
 from app.services.llm_service import llm_service
@@ -170,6 +171,10 @@ async def delete_resume(db: AsyncSession, resume_id: uuid.UUID, user_id: uuid.UU
     await db.execute(
         update(ChatSession).where(ChatSession.resume_id == resume_id).values(resume_id=None)
     )
+    # Agent 轨迹同理：保留执行记录，只断开它指向的简历。
+    await db.execute(
+        update(AgentRun).where(AgentRun.resume_id == resume_id).values(resume_id=None)
+    )
     await db.delete(resume)
     await db.flush()
     _remove_upload_files(files)
@@ -185,6 +190,9 @@ async def delete_all_resumes(db: AsyncSession, user_id: uuid.UUID) -> int:
     files = [u for r in resumes for u in (r.original_file_url, r.avatar_url) if u]
     await db.execute(
         update(ChatSession).where(ChatSession.resume_id.in_(ids)).values(resume_id=None)
+    )
+    await db.execute(
+        update(AgentRun).where(AgentRun.resume_id.in_(ids)).values(resume_id=None)
     )
     result = await db.execute(delete(Resume).where(Resume.user_id == user_id))
     await db.flush()

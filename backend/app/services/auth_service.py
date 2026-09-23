@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.resume import Resume
 from app.models.chat import ChatSession, Message
 from app.models.job_description import JobDescription
+from app.models.agent import AgentRun, AgentStep, UserPreference
 
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -110,6 +111,15 @@ async def delete_user_account(db: AsyncSession, user: User) -> list[str]:
     if user.avatar_url:
         stored_files.append(user.avatar_url)
 
+    # Agent 轨迹与长期记忆也要一起清掉：这些表存的是简历/JD 的衍生内容，
+    # 留着就等同于「注销后仍保留用户数据」。
+    await db.execute(
+        delete(AgentStep).where(
+            AgentStep.run_id.in_(select(AgentRun.id).where(AgentRun.user_id == user_id))
+        )
+    )
+    await db.execute(delete(AgentRun).where(AgentRun.user_id == user_id))
+    await db.execute(delete(UserPreference).where(UserPreference.user_id == user_id))
     await db.execute(
         delete(Message).where(
             Message.session_id.in_(

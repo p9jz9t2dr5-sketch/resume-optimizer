@@ -23,12 +23,15 @@ from app.database import Base
 
 # Importing the models registers them on Base.metadata (autogenerate needs this).
 from app.models import (  # noqa: F401
+    AgentRun,
+    AgentStep,
     ChatSession,
     Company,
     JobDescription,
     Message,
     Resume,
     User,
+    UserPreference,
 )
 
 config = context.config
