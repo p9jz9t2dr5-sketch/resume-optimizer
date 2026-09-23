@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.models.chat import ChatSession, Message
+from app.models.agent import AgentRun, AgentStep, UserPreference
 from app.models.job_description import JobDescription
 from app.models.resume import Resume
 from app.models.user import User
@@ -55,11 +56,53 @@ def _row_counts() -> dict[str, int]:
                     ),
                     "sessions": await s.scalar(select(func.count()).select_from(ChatSession)),
                     "messages": await s.scalar(select(func.count()).select_from(Message)),
+                    "agent_runs": await s.scalar(select(func.count()).select_from(AgentRun)),
+                    "agent_steps": await s.scalar(select(func.count()).select_from(AgentStep)),
+                    "preferences": await s.scalar(select(func.count()).select_from(UserPreference)),
                 }
         finally:
             await engine.dispose()
 
     return asyncio.run(run())
+
+
+def _seed_agent_data(user_id: str, resume_id: str) -> None:
+    """直接写入一条 Agent 轨迹与一条长期记忆（不经过模型，保持这个用例离线）。"""
+
+    async def run() -> None:
+        engine = create_async_engine(os.environ["DATABASE_URL"])
+        session_factory = async_sessionmaker(engine, expire_on_commit=False)
+        try:
+            async with session_factory() as s:
+                agent_run = AgentRun(
+                    user_id=uuid.UUID(user_id),
+                    resume_id=uuid.UUID(resume_id),
+                    goal="优化简历",
+                    status="succeeded",
+                    stopped_reason="completed",
+                    plan=[{"intent": "读结构", "tool": "list_resume_sections"}],
+                )
+                s.add(agent_run)
+                await s.flush()
+                s.add(
+                    AgentStep(
+                        run_id=agent_run.id,
+                        step_index=0,
+                        kind="tool",
+                        tool_name="list_resume_sections",
+                        status="ok",
+                    )
+                )
+                s.add(
+                    UserPreference(
+                        user_id=uuid.UUID(user_id), key="target_role", value="AI 应用开发"
+                    )
+                )
+                await s.commit()
+        finally:
+            await engine.dispose()
+
+    asyncio.run(run())
 
 
 def test_deleting_an_account_removes_all_of_its_data(client, upload_dir):
@@ -75,6 +118,10 @@ def test_deleting_an_account_removes_all_of_its_data(client, upload_dir):
         headers=headers,
     ).json()["session_id"]
 
+    # Agent 轨迹与长期记忆同样属于用户数据，注销后不能残留。
+    user_id = client.get("/auth/me", headers=headers).json()["id"]
+    _seed_agent_data(user_id, resume["id"])
+
     before = _row_counts()
 
     r = client.delete("/auth/me", headers=headers)
@@ -88,6 +135,9 @@ def test_deleting_an_account_removes_all_of_its_data(client, upload_dir):
     assert after["sessions"] == before["sessions"] - 1
     assert after["messages"] <= before["messages"]
     assert after["job_descriptions"] <= before["job_descriptions"]
+    assert after["agent_runs"] == before["agent_runs"] - 1
+    assert after["agent_steps"] == before["agent_steps"] - 1
+    assert after["preferences"] == before["preferences"] - 1
 
     # The uploaded file is gone from disk...
     assert not os.path.exists(stored_file)

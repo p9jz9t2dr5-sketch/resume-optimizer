@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "note": "Agent 离线评测集：覆盖版块切分、关键词匹配、知识库检索、数字幻觉检查四类确定性能力。这些用例不依赖模型，可随时回归。",
+  "sections": [
+    {
+      "id": "cn-markdown",
+      "resume": "# 张三\n求职意向：后端开发工程师\n\n## 教育背景\n某某大学 计算机科学与技术 本科 | 2019.09 - 2023.06\n\n## 工作经历\n某互联网公司 — 后端开发工程师 | 2023.07 - 至今\n- 负责订单中心微服务拆分\n\n## 项目经历\nAI 简历优化平台 — 独立开发\n- 实现 SSE 流式改写\n\n## 专业技能\nPython、FastAPI、PostgreSQL",
+      "expected_sections": ["教育背景", "工作经历", "项目经历", "专业技能"]
+    },
+    {
+      "id": "cn-plain-inline",
+      "resume": "个人信息\n姓名：李四\n求职意向：AI 应用开发实习生\n专业技能：Python、FastAPI、Redis\n工作经历\n某公司 数据开发实习生 2024.06-2024.09\n项目经历\n校园二手交易平台\n技术栈：Django、MySQL",
+      "expected_sections": ["个人信息", "求职意向", "专业技能", "工作经历", "项目经历"]
+    },
+    {
+      "id": "en-resume",
+      "resume": "Jane Doe\njane@example.com\n\nEDUCATION\nB.Sc. Computer Science, 2019-2023\n\nEXPERIENCE\nBackend Engineer, 2023-Present\n\nPROJECTS\nRAG knowledge base\n\nSKILLS\nPython, PostgreSQL, Docker",
+      "expected_sections": ["教育背景", "工作经历", "项目经历", "专业技能"]
+    },
+    {
+      "id": "mixed-decorated",
+      "resume": "【个人信息】\n王五 / 13800000000\n【求职意向】大模型应用开发\n【实习经历】\n某公司 算法实习生 2024.03-2024.08\n【项目经历】\nAgent 工作流平台\n【证书荣誉】\n蓝桥杯省二等奖",
+      "expected_sections": ["个人信息", "求职意向", "工作经历", "项目经历", "证书荣誉"]
+    }
+  ],
+  "keywords": [
+    {
+      "id": "python-vs-rag",
+      "text": "熟悉 Python 与 FastAPI，做过 SSE 流式接口",
+      "keywords": ["Python", "FastAPI", "RAG", "SSE"],
+      "expected_present": ["Python", "FastAPI", "SSE"],
+      "expected_missing": ["RAG"]
+    },
+    {
+      "id": "go-vs-google",
+      "text": "主要使用 Google Cloud 部署服务",
+      "keywords": ["Go", "Golang", "Google Cloud"],
+      "expected_present": ["Google Cloud"],
+      "expected_missing": ["Go", "Golang"]
+    },
+    {
+      "id": "cjk-substring",
+      "text": "参与大模型应用开发，负责 Prompt 调优与 Agent 流程搭建",
+      "keywords": ["大模型", "Prompt", "Agent", "微调"],
+      "expected_present": ["大模型", "Prompt", "Agent"],
+      "expected_missing": ["微调"]
+    },
+    {
+      "id": "case-insensitive",
+      "text": "使用 postgresql 与 redis",
+      "keywords": ["PostgreSQL", "Redis", "MySQL"],
+      "expected_present": ["PostgreSQL", "Redis"],
+      "expected_missing": ["MySQL"]
+    },
+    {
+      "id": "ascii-sentence",
+      "text": "Built a RAG pipeline with LangChain and pgvector",
+      "keywords": ["RAG", "LangChain", "pgvector", "Dify"],
+      "expected_present": ["RAG", "LangChain", "pgvector"],
+      "expected_missing": ["Dify"]
+    },
+    {
+      "id": "no-keyword-present",
+      "text": "负责公司内部 OA 系统的日常维护",
+      "keywords": ["Kubernetes", "Kafka"],
+      "expected_present": [],
+      "expected_missing": ["Kubernetes", "Kafka"]
+    }
+  ],
+  "retrieval": [
+    {
+      "id": "star",
+      "query": "STAR 情境 任务 行动 结果 怎么写",
+      "expected_ids": ["star-format"]
+    },
+    {
+      "id": "quantify",
+      "query": "没有数字 怎么量化成果",
+      "expected_ids": ["quantify"]
+    },
+    {
+      "id": "ats",
+      "query": "ATS 关键词 覆盖 筛选",
+      "expected_ids": ["ats-keywords"]
+    },
+    {
+      "id": "rag-story",
+      "query": "RAG chunk 策略 rerank 评测",
+      "expected_ids": ["rag-project-story"]
+    },
+    {
+      "id": "agent-story",
+      "query": "Agent 任务规划 工具调用 记忆管理",
+      "expected_ids": ["agent-project-story", "llm-app-keywords"]
+    },
+    {
+      "id": "fresh-grad",
+      "query": "应届生 经历少 简历怎么补",
+      "expected_ids": ["fresh-grad"]
+    },
+    {
+      "id": "gap",
+      "query": "空窗期 低 GPA 怎么解释",
+      "expected_ids": ["gap-explanation"]
+    },
+    {
+      "id": "weak-verbs",
+      "query": "负责 参与 这些弱动词怎么改",
+      "expected_ids": ["weak-verbs"]
+    },
+    {
+      "id": "avoid",
+      "query": "简历减分项 雷区 检查清单",
+      "expected_ids": ["avoid-list"]
+    },
+    {
+      "id": "open-source",
+      "query": "开源贡献 PR 怎么写进简历",
+      "expected_ids": ["open-source"]
+    }
+  ],
+  "number_guard": [
+    {
+      "id": "invented-percent",
+      "original": "负责订单中心拆分，接口 P99 从 800ms 降到 210ms",
+      "rewritten": "主导订单中心拆分，性能提升 40%",
+      "expected_unsupported": ["40"]
+    },
+    {
+      "id": "reused-numbers",
+      "original": "每周节省 3 小时，覆盖 30% 的核心链路",
+      "rewritten": "把重复核对脚本化，每周节省 3 小时，覆盖 30% 的核心链路",
+      "expected_unsupported": []
+    },
+    {
+      "id": "new-count",
+      "original": "搭建了数据同步服务",
+      "rewritten": "搭建了数据同步服务，新增 2 个接口",
+      "expected_unsupported": ["2"]
+    },
+    {
+      "id": "new-multiple-of",
+      "original": "支撑 10 万 QPS 的订单查询",
+      "rewritten": "支撑 10 万 QPS 的订单查询，吞吐提升 3 倍",
+      "expected_unsupported": ["3"]
+    },
+    {
+      "id": "dates-are-not-metrics",
+      "original": "某互联网公司 — 后端开发工程师 | 2023.07 - 至今",
+      "rewritten": "某互联网公司 — 后端开发工程师 | 2023.07 - 至今",
+      "expected_unsupported": []
+    }
+  ],
+  "report_checklist": {
+    "required_sections": [
+      "匹配度结论",
+      "关键词差距",
+      "逐段改写建议",
+      "量化补强清单",
+      "下一步行动清单"
+    ],
+    "sample_report": "## 1. 匹配度结论\n\n总分 72/100。\n\n## 2. 关键词差距\n\n缺失：Kubernetes、RAG。\n\n## 3. 逐段改写建议\n\n工作经历：……\n\n## 4. 量化补强清单\n\n- 订单中心的日均单量\n\n## 5. 下一步行动清单\n\n1. 补一条 RAG 经历。",
+    "failing_report": "## 总结\n\n这份简历整体不错，建议继续优化。"
+  }
+}
