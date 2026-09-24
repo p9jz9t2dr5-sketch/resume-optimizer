@@ -59,14 +59,16 @@ $COMPOSE restart nginx
 log "6/6 验证"
 ready=0
 for _ in $(seq 1 30); do
-  if curl -fsS "$BASE_URL/health" >/dev/null 2>&1; then ready=1; break; fi
+  # 必须走 /api/health：nginx 把 / 转给前端，根路径 /health 会命中原子的 404 页面
+  # （后端健康检查挂在后端根路径，不在 /api 前缀下，只能经 /api/ 剥前缀转发过去）。
+  if curl -fsS "$BASE_URL/api/health" >/dev/null 2>&1; then ready=1; break; fi
   sleep 2
 done
-[ "$ready" = "1" ] || fail "60 秒内 /health 仍未就绪：docker compose logs --tail=100 backend"
+[ "$ready" = "1" ] || fail "60 秒内 /api/health 仍未就绪：docker compose logs --tail=100 backend"
 
 curl -fsS "$BASE_URL/api/openapi.json" | grep -q '"/agent/optimize"' \
   || fail "服务起来了但 openapi 里没有 /agent/optimize：代码没更新或镜像没重建"
-echo "    /health 正常，/agent 路由已注册"
+echo "    /api/health 正常，/agent 路由已注册"
 
 $COMPOSE ps
 cat <<EOF
