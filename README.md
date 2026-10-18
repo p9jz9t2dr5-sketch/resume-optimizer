@@ -393,3 +393,9 @@ docker compose ps                       # 5 个容器：db / redis / backend / f
 
 - **水平扩展**：会话状态在 Redis、文件在本地磁盘，多实例部署前需要把上传切到对象存储。
 - **lint 债务**：`npm run lint` 已做到 0 error，但仍有 34 条 warning，主要是 API 适配层的 `any`（含 Agent SSE 事件的松散类型）、Agent 轨迹面板的事件字段 `any`，以及数据获取写法的 `react-hooks/set-state-in-effect`。
+
+---
+
+## License
+
+MIT © 2026 p9jz9t2dr5-sketch
