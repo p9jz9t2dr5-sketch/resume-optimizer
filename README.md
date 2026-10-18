@@ -1,10 +1,17 @@
 # AI Resume Optimizer · AI 简历优化平台
 
+![CI](https://github.com/p9jz9t2dr5-sketch/resume-optimizer/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+
 上传简历、粘贴目标岗位 JD，得到可解释的匹配度评分与逐段改写建议；再开一场 AI 模拟面试，把简历里的经历真正讲清楚。
 
 **在线体验：** <http://47.119.113.82> — 演示账号 `demo@resume-optimizer.dev` / `demo1234`（已预置一份示例简历和一场模拟面试记录）
 
 > 演示账号是公开的、仅用于试用，请不要上传真实个人信息。
+
+**文档：** [部署手册](docs/deploy.md) · [项目解析（HTML）](docs/project-overview.html) · [示例 JD](docs/examples/sample-jd.txt)
 
 ---
 
@@ -129,7 +136,7 @@
 
 | 项目 | 数字 | 复现 |
 |------|------|------|
-| 后端 pytest | **103 passed**（其中 Agent 相关 58 个：循环 / 工具 / 记忆 / 接口 / 统计口径） | `cd backend && python -m pytest -q` |
+| 后端 pytest | **106 passed**（其中 Agent 相关 62 个：循环 / 工具 / 记忆 / 接口 / 评测 / 统计口径） | `cd backend && python -m pytest -q` |
 | 前端 vitest | **36 passed** | `cd frontend && npm run test` |
 | 迁移一致性 | `alembic check` 无差异；`upgrade → downgrade → upgrade` 通过 | `cd backend && alembic check` |
 | 前端生产构建 | `next build` 通过（含 TypeScript 检查） | `cd frontend && npm run build` |
@@ -196,7 +203,7 @@
 
 ## 工程实践
 
-- **测试**：后端 103 个 pytest 用例（`backend/tests`）+ 前端 36 个 Vitest 用例（`frontend/tests`）。后端测试自备独立 SQLite 与临时上传目录，不依赖 Postgres、Redis 或任何 API Key，覆盖脱敏边界、迁移与模型一致性、账号资料链路、密码策略与登录限流、免费额度真的会拦下第 21 条消息、注销账号后不残留孤儿行与磁盘文件、孤儿文件清理脚本只删未被引用的文件、模拟面试会话的生命周期与所有权隔离（别人的会话一律 404），以及 Agent 的规划 / 工具调用 / 参数校验 / 超时 / 重规划 / 步数上限 / 上下文压缩 / 降级 / 长期记忆冲突 / 轨迹落库与越权隔离；前端用 Testing Library 覆盖头像回退、昵称校验边界、先传图再保存、非图片文件被拒、注册页校验、注销需二次确认、404 与错误边界、API 错误透传，以及 Agent 轨迹面板的渲染与降级提示。
+- **测试**：后端 106 个 pytest 用例（`backend/tests`）+ 前端 36 个 Vitest 用例（`frontend/tests`）。后端测试自备独立 SQLite 与临时上传目录，不依赖 Postgres、Redis 或任何 API Key，覆盖脱敏边界、迁移与模型一致性、账号资料链路、密码策略与登录限流、免费额度真的会拦下第 21 条消息、注销账号后不残留孤儿行与磁盘文件、孤儿文件清理脚本只删未被引用的文件、模拟面试会话的生命周期与所有权隔离（别人的会话一律 404），以及 Agent 的规划 / 工具调用 / 参数校验 / 超时 / 重规划 / 步数上限 / 上下文压缩 / 降级 / 长期记忆冲突 / 轨迹落库与越权隔离；前端用 Testing Library 覆盖头像回退、昵称校验边界、先传图再保存、非图片文件被拒、注册页校验、注销需二次确认、404 与错误边界、API 错误透传，以及 Agent 轨迹面板的渲染与降级提示。
 - **Agent 怎么验证**：Agent 的模型调用全部走可注入的假模型（`tests/agent_fakes.py`），所以「循环会不会死循环、工具失败会不会重规划、上下文压缩会不会把 tool 消息切散」这些最容易出问题的路径都有确定性用例；模型本身的效果则用 `backend/evals/` 的离线指标 + `agent_runs` 里的在线指标（步数、工具失败率、token 消耗）分开衡量，不混成一个数字。
 - **数据生命周期**：删除简历会带走原始文件与裁剪头像，替换头像会删掉旧文件，注销账号会清空该用户的全部数据与文件；文件一律在事务提交之后才删除，避免数据库指向已不存在的文件。历史上用 psql 直接删行留下的孤儿文件，可以用 `backend/scripts/prune_orphan_uploads.py` 先 dry-run 列出、再加 `--delete` 清理。
 - **认证与滥用防护**：注册密码限定 8–72 位（上限正好是 bcrypt 72 字节的截断边界，超长直接拒绝而不是静默截断）；登录按「客户端 IP + 邮箱」维度做失败限流，同一组合连续失败 5 次后返回 429，15 分钟窗口，登录成功即清零——按 IP+邮箱而不是仅按邮箱计数，避免攻击者用失败尝试把受害者锁在门外。
@@ -311,7 +318,7 @@ npm install && npm run dev
 ## 测试与检查
 
 ```bash
-# 后端：103 个用例，使用独立 SQLite，不依赖外部服务
+# 后端：106 个用例，使用独立 SQLite，不依赖外部服务
 cd backend && pip install -r requirements.txt -r requirements-dev.txt && python -m pytest
 ```
 
