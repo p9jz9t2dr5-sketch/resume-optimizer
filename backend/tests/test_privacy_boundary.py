@@ -95,7 +95,12 @@ def test_polish_sends_masked_text_and_export_keeps_real_contact(client, monkeypa
 
     async def fake_parse_resume(text, is_premium=False):
         captured_parse.append(text)
-        return {"summary": "优化后的简介", "skills": ["Python"], "basic_info": {}}
+        # 模型很可能把占位符原样写回结构化结果，真实身份必须能覆盖它
+        return {
+            "summary": "优化后的简介",
+            "skills": ["Python"],
+            "basic_info": {"name": "[已隐藏]", "phone": "[已隐藏]", "email": "[已隐藏]"},
+        }
 
     async def fake_polish_stream(resume_text, jd_text, match_report=None, is_premium=False):
         captured_polish.append(resume_text)
@@ -118,6 +123,11 @@ def test_polish_sends_masked_text_and_export_keeps_real_contact(client, monkeypa
     assert "13800000000" in exported
     assert "zhangsan@example.com" in exported
     assert "张三" in exported
+
+    structured = client.get(f"/resumes/{resume_id}", headers=headers).json()["parsed_data"]["structured"]
+    assert structured["basic_info"]["name"] == "张三"
+    assert structured["basic_info"]["phone"] == "13800000000"
+    assert "[已隐藏]" not in str(structured["basic_info"].values())
 
 
 def test_jd_match_and_interview_send_masked_text(client, monkeypatch, api_key):

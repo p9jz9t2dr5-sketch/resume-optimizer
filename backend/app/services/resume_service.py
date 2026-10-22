@@ -11,7 +11,7 @@ from app.models.resume import Resume
 from app.models.chat import ChatSession
 from app.models.agent import AgentRun
 from app.services.file_parser import parse_file, allowed_file, ALLOWED_EXTENSIONS
-from app.services.anonymizer import anonymize_text, extract_identity
+from app.services.anonymizer import REPLACEMENT, anonymize_text, extract_identity
 from app.services.llm_service import llm_service
 from app.services.avatar_service import extract_avatar
 from app.services.storage import stored_filename, upload_url
@@ -38,6 +38,15 @@ def resume_text_for_llm(resume: Resume) -> str:
     return ""
 
 
+def _usable_identity(value) -> bool:
+    """占位符不能当身份保留。
+
+    模型看到的是 ``[已隐藏]``，重新结构化时很可能把这个占位符原样写进
+    ``basic_info``；如果只判断「非空」，真实姓名/电话就会被占位符覆盖。
+    """
+    return bool(value) and REPLACEMENT not in str(value)
+
+
 def merge_polish_structured(
     old: dict, new: dict, identity_fallback: dict | None = None
 ) -> dict:
@@ -53,12 +62,13 @@ def merge_polish_structured(
     if not isinstance(new_basic, dict):
         new_basic = {}
     for field in _IDENTITY_FIELDS:
-        if new_basic.get(field):
+        if _usable_identity(new_basic.get(field)):
             continue
         # 优先沿用旧结构里的值；旧结构为空时，用本地从原文抽出的身份兜底——
         # 模型拿到的是脱敏文本，它不可能把真实姓名/电话还给我们。
-        value = old_basic.get(field) or (identity_fallback or {}).get(field)
-        if value:
+        old_value = old_basic.get(field)
+        value = old_value if _usable_identity(old_value) else (identity_fallback or {}).get(field)
+        if _usable_identity(value):
             new_basic[field] = value
     merged["basic_info"] = new_basic
     return merged
