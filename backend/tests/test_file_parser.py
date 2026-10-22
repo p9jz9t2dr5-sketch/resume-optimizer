@@ -35,6 +35,9 @@ def test_text_pdf_skips_ocr(monkeypatch, tmp_path):
 def test_scanned_pdf_renders_every_page_and_combines_ocr(monkeypatch, tmp_path):
     pdf_path = _write_blank_pdf(tmp_path / "scanned.pdf", pages=2)
     rendered_paths: list[str] = []
+    # CI 没有 .env.local，必须显式给 key；否则会走「缺 Key」分支而不是渲染路径。
+    # （本地因为 .env.local 里有真实 key，这个依赖曾经被掩盖。）
+    monkeypatch.setattr(file_parser.settings, "DASHSCOPE_API_KEY", "test-key")
 
     async def fake_parse_image(image_path: str) -> str:
         assert Path(image_path).is_file()
