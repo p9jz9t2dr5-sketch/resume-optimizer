@@ -31,6 +31,7 @@ from app.models.agent import AgentRun, AgentRunStatus, AgentStep
 from app.models.resume import Resume
 from app.services.llm_service import llm_service
 from app.services.resume_service import merge_polish_structured, update_resume_parsed_data
+from app.services.anonymizer import extract_identity
 
 settings = get_settings()
 logger = logging.getLogger("uvicorn")
@@ -165,7 +166,11 @@ async def _persist_artifacts(
                     resume = await session.get(Resume, resume_id)
                     if resume is not None and resume.user_id == user_id:
                         old = (resume.parsed_data or {}).get("structured") or {}
-                        structured = merge_polish_structured(old, parsed)
+                        structured = merge_polish_structured(
+                            old,
+                            parsed,
+                            identity_fallback=extract_identity(resume.content or ""),
+                        )
                         await update_resume_parsed_data(session, resume_id, user_id, structured)
                         await session.commit()
             except Exception as exc:

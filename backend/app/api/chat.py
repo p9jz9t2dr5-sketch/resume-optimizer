@@ -48,6 +48,7 @@ from app.services.chat_service import (
     delete_all_sessions,
 )
 from app.services.llm_service import llm_service
+from app.services.resume_service import resume_text_for_llm
 
 logger = logging.getLogger("uvicorn")
 
@@ -86,7 +87,8 @@ async def start_chat(
                 Resume.id == request.resume_id, Resume.user_id == current_user.id
             )
         )
-        resume_text = (resume.content or resume.anonymized_text or "") if resume else ""
+        # 面试官模型只需要简历内容，不需要真实身份；统一取脱敏文本
+        resume_text = resume_text_for_llm(resume) if resume else ""
         opening = await llm_service.interview_opening(
             resume_text, request.jd_text or "", current_user.is_premium
         )

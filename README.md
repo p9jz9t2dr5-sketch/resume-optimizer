@@ -33,7 +33,7 @@
 |------|------|
 | 账号体系 | 邮箱注册登录，JWT（access + refresh 双 token），bcrypt 存储密码；`is_premium` 区分免费/会员两档（配额与所选模型不同，暂无自助升级入口，由数据库字段控制） |
 | 简历管理 | 支持 PDF / DOCX / TXT / 图片上传，服务端解析正文并保留原始文件 |
-| 隐私脱敏 | 姓名、手机号、邮箱、身份证等 PII 自动替换为 `[已隐藏]`，送给模型的是脱敏文本 |
+| 隐私脱敏 | 发给模型前对姓名 / 手机 / 邮箱 / 身份证 / 地址做**尽力**脱敏（规则匹配，不保证 100% 召回）；真实身份只留本地，导出时本地回填 |
 | 图片简历 OCR | 用 Qwen-VL 视觉模型识别图片简历，并自动裁出证件照作为简历头像 |
 | JD 匹配分析 | 把岗位描述解析成结构化要求，逐条比对经历，输出匹配度评分、缺失关键词与改进建议 |
 | AI 优化建议（快速模式） | 按 STAR 原则逐段改写、量化成果，SSE 流式输出，支持一键复制全文 |
@@ -74,7 +74,7 @@
 ### 一次「简历优化」的完整链路
 
 1. 前端把文件 POST 到 `/api/resumes/upload`，后端落盘并解析出正文；
-2. 正文经 `anonymizer` 脱敏后写入 `anonymized_text`，真实文本单独留在 `content` 供预览与导出，**只有脱敏文本会发给模型**；
+2. 正文经 `anonymizer` 脱敏后写入 `anonymized_text`，真实文本留在 `content`（仅本地预览 / 导出 / 身份回填）。**所有模型调用只取 `anonymized_text`**（统一入口 `resume_text_for_llm`），生成后再在本地把姓名与联系方式填回结构化数据；
 3. `/api/jd/parse` 把 JD 结构化并返回匹配度报告（评分、命中/缺失关键词、改进建议）；
 4. `/api/resumes/{id}/polish` 用 SSE 流式返回逐段改写结果，nginx 侧关闭响应缓冲，首字延迟 1 秒内；
 5. 模拟面试由 `/api/chat/start` 建立会话，后端先让模型生成一段面试官开场白（best-effort，失败不影响会话），之后 `/api/chat/{id}/message` 带着历史上下文逐轮追问，同样是 SSE；
@@ -136,7 +136,7 @@
 
 | 项目 | 数字 | 复现 |
 |------|------|------|
-| 后端 pytest | **106 passed**（其中 Agent 相关 62 个：循环 / 工具 / 记忆 / 接口 / 评测 / 统计口径） | `cd backend && python -m pytest -q` |
+| 后端 pytest | **110 passed**（其中 Agent 相关 62 个：循环 / 工具 / 记忆 / 接口 / 评测 / 统计口径） | `cd backend && python -m pytest -q` |
 | 前端 vitest | **36 passed** | `cd frontend && npm run test` |
 | 迁移一致性 | `alembic check` 无差异；`upgrade → downgrade → upgrade` 通过 | `cd backend && alembic check` |
 | 前端生产构建 | `next build` 通过（含 TypeScript 检查） | `cd frontend && npm run build` |
@@ -203,7 +203,7 @@
 
 ## 工程实践
 
-- **测试**：后端 106 个 pytest 用例（`backend/tests`）+ 前端 36 个 Vitest 用例（`frontend/tests`）。后端测试自备独立 SQLite 与临时上传目录，不依赖 Postgres、Redis 或任何 API Key，覆盖脱敏边界、迁移与模型一致性、账号资料链路、密码策略与登录限流、免费额度真的会拦下第 21 条消息、注销账号后不残留孤儿行与磁盘文件、孤儿文件清理脚本只删未被引用的文件、模拟面试会话的生命周期与所有权隔离（别人的会话一律 404），以及 Agent 的规划 / 工具调用 / 参数校验 / 超时 / 重规划 / 步数上限 / 上下文压缩 / 降级 / 长期记忆冲突 / 轨迹落库与越权隔离；前端用 Testing Library 覆盖头像回退、昵称校验边界、先传图再保存、非图片文件被拒、注册页校验、注销需二次确认、404 与错误边界、API 错误透传，以及 Agent 轨迹面板的渲染与降级提示。
+- **测试**：后端 110 个 pytest 用例（`backend/tests`）+ 前端 36 个 Vitest 用例（`frontend/tests`）。后端测试自备独立 SQLite 与临时上传目录，不依赖 Postgres、Redis 或任何 API Key，覆盖脱敏边界、**模型边界的 PII 断言（发给模型的 prompt 不含姓名/手机/邮箱/身份证，导出仍保留真实联系方式）**、迁移与模型一致性、账号资料链路、密码策略与登录限流、免费额度真的会拦下第 21 条消息、注销账号后不残留孤儿行与磁盘文件、孤儿文件清理脚本只删未被引用的文件、模拟面试会话的生命周期与所有权隔离（别人的会话一律 404），以及 Agent 的规划 / 工具调用 / 参数校验 / 超时 / 重规划 / 步数上限 / 上下文压缩 / 降级 / 长期记忆冲突 / 轨迹落库与越权隔离；前端用 Testing Library 覆盖头像回退、昵称校验边界、先传图再保存、非图片文件被拒、注册页校验、注销需二次确认、404 与错误边界、API 错误透传，以及 Agent 轨迹面板的渲染与降级提示。
 - **Agent 怎么验证**：Agent 的模型调用全部走可注入的假模型（`tests/agent_fakes.py`），所以「循环会不会死循环、工具失败会不会重规划、上下文压缩会不会把 tool 消息切散」这些最容易出问题的路径都有确定性用例；模型本身的效果则用 `backend/evals/` 的离线指标 + `agent_runs` 里的在线指标（步数、工具失败率、token 消耗）分开衡量，不混成一个数字。
 - **数据生命周期**：删除简历会带走原始文件与裁剪头像，替换头像会删掉旧文件，注销账号会清空该用户的全部数据与文件；文件一律在事务提交之后才删除，避免数据库指向已不存在的文件。历史上用 psql 直接删行留下的孤儿文件，可以用 `backend/scripts/prune_orphan_uploads.py` 先 dry-run 列出、再加 `--delete` 清理。
 - **认证与滥用防护**：注册密码限定 8–72 位（上限正好是 bcrypt 72 字节的截断边界，超长直接拒绝而不是静默截断）；登录按「客户端 IP + 邮箱」维度做失败限流，同一组合连续失败 5 次后返回 429，15 分钟窗口，登录成功即清零——按 IP+邮箱而不是仅按邮箱计数，避免攻击者用失败尝试把受害者锁在门外。
@@ -304,7 +304,7 @@ npm install && npm run dev
 | `REDIS_URL` | 配额计数用；留空则本地开发时跳过 |
 | `SECRET_KEY` | JWT 签名密钥，**上线必须换成随机值** |
 | `OPENAI_API_KEY` / `OPENAI_BASE_URL` | DeepSeek 或任何 OpenAI 兼容服务 |
-| `DASHSCOPE_API_KEY` / `QWEN_VL_MODEL` | 图片简历 OCR；不配置时该功能会明确报错，其余功能不受影响 |
+| `DASHSCOPE_API_KEY` / `QWEN_VL_MODEL` | 图片简历及扫描版 PDF OCR；不配置时该功能会明确报错，其余功能不受影响 |
 | `CORS_ORIGINS` | 允许的前端来源，逗号分隔 |
 | `UPLOAD_DIR` | 上传文件目录，容器内为 `./uploads` |
 | `FREE_DAILY_MESSAGE_LIMIT` | 免费用户每日消息上限 |
@@ -318,7 +318,7 @@ npm install && npm run dev
 ## 测试与检查
 
 ```bash
-# 后端：106 个用例，使用独立 SQLite，不依赖外部服务
+# 后端：110 个用例，使用独立 SQLite，不依赖外部服务
 cd backend && pip install -r requirements.txt -r requirements-dev.txt && python -m pytest
 ```
 

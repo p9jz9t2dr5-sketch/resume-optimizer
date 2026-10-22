@@ -24,11 +24,11 @@ class Resume(Base):
     # Cropped person photo/avatar extracted from an uploaded image resume via
     # Qwen-VL bbox + Pillow. Null for non-image resumes or when detection fails.
     avatar_url: Mapped[str] = mapped_column(String(1000), nullable=True)
-    # Raw, un-masked resume text WITH real PII (name/phone/email). This is the
-    # source of truth used for preview, AI polish, parse, match and export so the
-    # optimized deliverable keeps the user's real contact info.
+    # Raw, un-masked resume text WITH real PII (name/phone/email). It stays local:
+    # used for preview/export and for re-injecting identity fields after generation.
+    # Every LLM call must use anonymized_text instead (resume_text_for_llm).
     content: Mapped[str] = mapped_column(Text, nullable=True)
-    # Masked copy kept only as a privacy-safe fallback (e.g. old records / redacted view).
+    # Masked copy: the ONLY resume text that may be sent to a model.
     anonymized_text: Mapped[str] = mapped_column(Text, nullable=True)
     parsed_data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())

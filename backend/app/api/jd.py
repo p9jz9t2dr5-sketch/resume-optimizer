@@ -15,7 +15,7 @@ from app.models.user import User
 from app.models.job_description import JobDescription
 from app.schemas.jd import JDParseRequest, JDParseResponse, ParsedRequirement
 from app.services.llm_service import llm_service
-from app.services.resume_service import get_resume_by_id
+from app.services.resume_service import get_resume_by_id, resume_text_for_llm
 
 router = APIRouter()
 
@@ -72,10 +72,11 @@ async def parse_jd(
             resume = await get_resume_by_id(db, uuid.UUID(request.resume_id), current_user.id)
         except ValueError:
             resume = None
-        if resume and (resume.content or resume.anonymized_text):
+        resume_text = resume_text_for_llm(resume) if resume else ""
+        if resume_text:
             try:
                 match_report = await llm_service.analyze_match(
-                    resume.content or resume.anonymized_text, reqs, current_user.is_premium
+                    resume_text, reqs, current_user.is_premium
                 )
                 response.match_report = match_report
             except Exception:

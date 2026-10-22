@@ -10,6 +10,7 @@ from app.database import async_session
 from app.models.chat import ChatSession, Message, SessionStatus
 from app.models.resume import Resume
 from app.services.llm_service import llm_service
+from app.services.resume_service import resume_text_for_llm
 
 logger = logging.getLogger("uvicorn")
 
@@ -117,7 +118,7 @@ async def stream_chat_response(
             result = await s.execute(select(Resume).where(Resume.id == session.resume_id))
             resume = result.scalar_one_or_none()
 
-        resume_text = (resume.content or resume.anonymized_text or "") if resume else ""
+        resume_text = resume_text_for_llm(resume) if resume else ""
         jd_text = session.jd_text or ""
 
         if not resume_text and session.resume_id:

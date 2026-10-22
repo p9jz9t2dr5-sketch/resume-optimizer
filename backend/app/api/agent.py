@@ -65,7 +65,7 @@ from app.services.agent_service import (
     list_runs,
     stream_optimize_agent,
 )
-from app.services.resume_service import get_resume_by_id
+from app.services.resume_service import get_resume_by_id, resume_text_for_llm
 
 logger = logging.getLogger("uvicorn")
 router = APIRouter()
@@ -96,7 +96,8 @@ async def optimize_resume(
     resume = await get_resume_by_id(db, resume_id, current_user.id)
     if resume is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
-    resume_text = resume.content or resume.anonymized_text
+    # Agent 的规划、工具调用、改写全都基于脱敏文本；真实身份在写回时本地补
+    resume_text = resume_text_for_llm(resume)
     if not resume_text:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Resume has no parsed text")
     if not settings.OPENAI_API_KEY:

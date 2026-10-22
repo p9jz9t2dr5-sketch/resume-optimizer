@@ -11,7 +11,7 @@ from app.models.resume import Resume
 from app.models.chat import ChatSession
 from app.models.agent import AgentRun
 from app.services.file_parser import parse_file, allowed_file, ALLOWED_EXTENSIONS
-from app.services.anonymizer import anonymize_text
+from app.services.anonymizer import anonymize_text, extract_identity
 from app.services.llm_service import llm_service
 from app.services.avatar_service import extract_avatar
 from app.services.storage import stored_filename, upload_url
@@ -24,7 +24,23 @@ settings = get_settings()
 _IDENTITY_FIELDS = ("name", "phone", "email", "location", "job_title", "years_of_experience")
 
 
-def merge_polish_structured(old: dict, new: dict) -> dict:
+def resume_text_for_llm(resume: Resume) -> str:
+    """模型调用前**唯一**的取文入口：只返回脱敏文本。
+
+    历史数据可能没有 anonymized_text，这时现场脱敏（不落库，避免在请求里做写操作）。
+    所有会调用模型的地方都必须走这里——散落各处取 ``content`` 正是之前
+    README 说「只发脱敏文本」而代码实际发原文的原因。
+    """
+    if resume.anonymized_text:
+        return resume.anonymized_text
+    if resume.content:
+        return anonymize_text(resume.content)[0]
+    return ""
+
+
+def merge_polish_structured(
+    old: dict, new: dict, identity_fallback: dict | None = None
+) -> dict:
     """Merge a re-parsed (polished) structured resume over the previous one.
 
     Keeps descriptive arrays (education/work/projects/skills/certificates/languages)
@@ -37,8 +53,13 @@ def merge_polish_structured(old: dict, new: dict) -> dict:
     if not isinstance(new_basic, dict):
         new_basic = {}
     for field in _IDENTITY_FIELDS:
-        if not new_basic.get(field) and old_basic.get(field):
-            new_basic[field] = old_basic[field]
+        if new_basic.get(field):
+            continue
+        # 优先沿用旧结构里的值；旧结构为空时，用本地从原文抽出的身份兜底——
+        # 模型拿到的是脱敏文本，它不可能把真实姓名/电话还给我们。
+        value = old_basic.get(field) or (identity_fallback or {}).get(field)
+        if value:
+            new_basic[field] = value
     merged["basic_info"] = new_basic
     return merged
 
@@ -80,7 +101,8 @@ async def upload_and_parse_resume(
     structured: dict = {}
     if raw_text and settings.OPENAI_API_KEY:
         try:
-            structured = await llm_service.parse_resume(raw_text, is_premium=False)
+            # 只把脱敏文本交给模型；真实身份在下面用 extract_identity 本地回填。
+            structured = await llm_service.parse_resume(anonymized_text, is_premium=False)
         except Exception:
             structured = {}
 
@@ -91,6 +113,11 @@ async def upload_and_parse_resume(
     count = count_result.scalar()
     if version_name == "v1":
         version_name = f"v{count + 1}"
+
+    if structured and isinstance(structured, dict):
+        structured = merge_polish_structured(
+            {"basic_info": extract_identity(raw_text)}, structured
+        )
 
     resume = Resume(
         user_id=user_id,

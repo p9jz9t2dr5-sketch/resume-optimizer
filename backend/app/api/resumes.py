@@ -11,8 +11,10 @@
 | POST | /{resume_id}/polish | 按目标 JD 生成「简历优化建议」，SSE 流式 | 是 |
 | GET | /{resume_id}/export | 导出优化后的文本（.txt 下载） | 是 |
 
-关于隐私：content 保存含真实 PII 的原文（预览/导出用），anonymized_text 保存脱敏副本，
-调用模型时优先使用 content（模型侧不落库），对外分享/展示用脱敏文本。
+关于隐私：content 保存含真实 PII 的原文（仅用于本地预览/导出与身份回填），
+anonymized_text 保存脱敏副本。**所有发给模型的简历正文都只取 anonymized_text**
+（统一走 resume_service.resume_text_for_llm）；生成结束后再由
+merge_polish_structured 在本地把姓名/联系方式填回结构化数据。
 """
 
 import json
@@ -40,9 +42,11 @@ from app.services.resume_service import (
     get_resume_by_id,
     update_resume_parsed_data,
     merge_polish_structured,
+    resume_text_for_llm,
     delete_resume,
     delete_all_resumes,
 )
+from app.services.anonymizer import extract_identity
 from app.services.llm_service import llm_service
 from app.services.avatar_service import _resolve_avatar_url
 
@@ -217,6 +221,7 @@ async def export_resume(
         resume_text = _structured_to_text(structured)
         filename = f"{safe_name}_optimized.txt"
     else:
+        # 导出是本地交付物，这里刻意使用原文（含真实联系方式）；模型永远看不到它。
         resume_text = resume.content or resume.anonymized_text
         if not resume_text:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No resume text available")
@@ -248,7 +253,9 @@ async def polish_resume(
     resume = await get_resume_by_id(db, uuid.UUID(resume_id), current_user.id)
     if not resume:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
-    resume_text = resume.content or resume.anonymized_text
+    resume_text = resume_text_for_llm(resume)
+    # 请求级会话可能在流式生成期间关闭，身份字段要在返回 StreamingResponse 之前取好
+    identity = extract_identity(resume.content or "")
     if not resume_text:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Resume has no parsed text")
 
@@ -275,7 +282,9 @@ async def polish_resume(
                 try:
                     new_structured = await llm_service.parse_resume(polished_text, current_user.is_premium)
                     old_structured = (resume.parsed_data or {}).get("structured", {})
-                    merged = merge_polish_structured(old_structured, new_structured)
+                    merged = merge_polish_structured(
+                        old_structured, new_structured, identity_fallback=identity
+                    )
                     # NOTE: the request-scoped `db` session may already be closed by
                     # the time this streaming generator runs its post-yield code, so
                     # persist inside a fresh session to avoid a silent "session closed"
@@ -328,7 +337,7 @@ async def parse_resume_endpoint(
     resume = await get_resume_by_id(db, uuid.UUID(resume_id), current_user.id)
     if not resume:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
-    resume_text = resume.content or resume.anonymized_text
+    resume_text = resume_text_for_llm(resume)
     if not resume_text:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Resume has no parsed text")
     if not settings.OPENAI_API_KEY:
@@ -344,5 +353,11 @@ async def parse_resume_endpoint(
         structured = ResumeStructured(**data).model_dump()
     except Exception:
         structured = data if isinstance(data, dict) else {}
+
+    # 模型看到的是脱敏文本，真实姓名/联系方式在本地回填
+    if isinstance(data, dict) and data:
+        structured = merge_polish_structured(
+            {"basic_info": extract_identity(resume.content or "")}, structured
+        )
 
     return await update_resume_parsed_data(db, uuid.UUID(resume_id), current_user.id, structured)
