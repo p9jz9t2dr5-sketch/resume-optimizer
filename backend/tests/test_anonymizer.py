@@ -46,3 +46,17 @@ def test_body_text_with_surnames_not_destroyed():
     cleaned, pii = anonymize_text(text)
     assert cleaned == text
     assert pii["names"] == []
+
+
+def test_markdown_decorated_names_are_replaced():
+    """OCR 输出是 Markdown：姓名常带 heading / 加粗 / 列表装饰。"""
+    cases = {
+        "# 张三\n电话：13812345678": "# [已隐藏]",
+        "**李四**\n邮箱：x@y.com": "**[已隐藏]**",
+        "- 王五\n电话：13900000000": "- [已隐藏]",
+    }
+    for text, expected in cases.items():
+        cleaned, pii = anonymize_text(text)
+        assert expected in cleaned, f"未保留 Markdown 结构: {cleaned!r}"
+        assert pii["names"], f"姓名未被识别: {text!r}"
+        assert not any(name in cleaned for name in ("张三", "李四", "王五"))

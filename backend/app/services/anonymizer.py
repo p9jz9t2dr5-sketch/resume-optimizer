@@ -46,7 +46,14 @@ ADDRESS_PATTERN = (
 )
 SURNAME_PATTERN = "|".join(CN_SURNAMES)
 NAME_CORE = rf"(?:{SURNAME_PATTERN})\s*[一-龥]{{1,2}}"
-NAME_LINE_PATTERN = rf"(?m)^(?P<indent>\s*)(?P<name>{NAME_CORE})"
+# 简历 OCR 输出是 Markdown：姓名常写成 "# 张三" / "**张三**" / "- 张三"。
+# 只认行首会漏掉这些形式（线上扫描件冒烟时确实漏过），所以允许常见装饰前缀。
+NAME_LINE_PATTERN = (
+    rf"(?m)^(?P<indent>\s*)"
+    rf"(?P<prefix>(?:\*\*|#{{1,6}}[ \t]*|[-*•>][ \t]+)?)"
+    rf"(?P<name>{NAME_CORE})"
+    rf"(?P<suffix>\*\*)?"
+)
 NAME_LABEL_PATTERN = (
     rf"(?P<label>姓名[:：]?\s*|名字[:：]?\s*|Name\s*[:：]?\s*)(?P<name>{NAME_CORE})"
 )
@@ -92,7 +99,9 @@ def anonymize_text(text: str) -> Tuple[str, dict]:
 
     cleaned = re.sub(
         NAME_LINE_PATTERN,
-        lambda m: f"{m.group('indent')}{REPLACEMENT}",
+        lambda m: (
+            f"{m.group('indent')}{m.group('prefix')}{REPLACEMENT}{m.group('suffix') or ''}"
+        ),
         cleaned,
         flags=re.MULTILINE,
     )

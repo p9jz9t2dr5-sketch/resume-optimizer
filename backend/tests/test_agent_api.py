@@ -247,8 +247,10 @@ def test_section_rewrites_update_the_resume_preview(client, with_api_key, fake_l
     assert resume["parsed_data"]["structured"] == structured_event["structured"]
     assert "已改写工作经历" in resume["parsed_data"]["agent_report"]
     assert "工作经历" in resume["parsed_data"]["agent_rewrites"]
-    # 身份字段仍然来自原简历，不会被模型的改写稿覆盖
-    assert resume["parsed_data"]["structured"]["basic_info"]["name"] == "[已隐藏]"
+    # 身份字段仍然来自原简历：模型看到的是 [已隐藏]，但本地回填必须还原真实姓名，
+    # 不能让占位符覆盖交付物里的身份字段。
+    assert resume["parsed_data"]["structured"]["basic_info"]["name"] == "张三"
+    assert "[已隐藏]" not in str(resume["parsed_data"]["structured"]["basic_info"].values())
 
 
 def test_agent_cannot_overwrite_a_user_set_preference(client, with_api_key, fake_llm):
